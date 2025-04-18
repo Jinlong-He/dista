@@ -30,6 +30,7 @@ class Device(object):
         except OSKeyError:
             logger.error("%s is not supported" % operating_system)
             sys.exit(-1)
+        self.window = None
 
     def install_app(self, app):
         self.automator.install_app(app)
@@ -75,12 +76,6 @@ class Device(object):
     def screenshot(self, path=''):
         return self.automator.screenshot(path)
 
-    # def display_size(self):
-    #     return self.automator.display_size()
-
-    # def display_rotation(self):
-    #     return self.automator.display_rotation()
-    
     def home(self):
         self.automator.home()
 
@@ -90,11 +85,12 @@ class Device(object):
     def recent(self):
         self.automator.recent()
     
-    def dump_window(self):
-        vht = self.dump_hierarchy()
-        screen = self.screenshot()
-        window = Window(vht=vht, screen=screen)
-        return window
+    def dump_window(self, refresh=False):
+        if self.window == None or refresh:
+            vht = self.dump_hierarchy()
+            img = self.screenshot()
+            self.window = Window(vht=vht, img=img)
+        return self.window
 
     def dump_page(self, split=False, app=None):
         if not split:

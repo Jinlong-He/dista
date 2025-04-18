@@ -13,12 +13,12 @@ class VHT(object):
 
     def __str__(self):
         return str(self._root._dict())
-
-    def all(self, **attrib):
-        return self._root.all(**attrib)
     
+    def __call__(self, **kwds):
+        return self._root(kwds)
+
     def roots(self):
-        return self.all(type='root')
+        return self.__call__(type='root')
     
     def _compress(self, node):
         if len(node._children) == 1 and node.attribute['bounds'] == node._children[0].attribute['bounds']:
@@ -60,6 +60,14 @@ class VHTNode(object):
     def __delitem__(self, index):
         del self._children[index]
     
+    def __call__(self, **kwds):
+        nodes = []
+        if self._satisfy(kwds):
+            nodes.append(self)
+        for child in self._children:
+            nodes.extend(child(**kwds))
+        return nodes
+    
     def append(self, node):
         self._assert_is_node(node)
         self._children.append(node)
@@ -68,14 +76,6 @@ class VHTNode(object):
         for node in nodes:
             self._assert_is_node(node)
             self._children.append(node)
-    
-    def all(self, **attrib):
-        nodes = []
-        if self._satisfy(attrib):
-            nodes.append(self)
-        for child in self._children:
-            nodes.extend(child.all(**attrib))
-        return nodes
     
     def _assert_is_node(self, node):
         if not isinstance(node, VHTNode):
