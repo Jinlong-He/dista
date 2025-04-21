@@ -160,6 +160,7 @@ class VHTParser(object):
                            checkable = extra['checkable'],
                            checked = extra['checked'],
                            type = extra['type'],
+                           id = extra['id'],
                            text = extra['text'],
                            center = [int((x1 + x2)/2), int((y1 + y2)/2)])
             if 'children' in source:
@@ -188,6 +189,7 @@ class VHTParser(object):
                            checkable = '',
                            checked = '',
                            type = '',
+                           id = '',
                            text = '',
                            center = [0,0])
         elif source.tag == 'node':
@@ -207,6 +209,7 @@ class VHTParser(object):
                            checkable = extra['checkable'],
                            checked = extra['checked'],
                            type = extra['class'],
+                           id = extra['resource-id'],
                            text = extra['text'],
                            center = [int((x1 + x2)/2), int((y1 + y2)/2)])
         for child in source:

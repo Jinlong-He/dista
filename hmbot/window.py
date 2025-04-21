@@ -13,6 +13,8 @@ class Window(object):
         #     from .cv import _crop
         #     page = Page(name=name, vht=VHT(root), img=_crop(screen, root.attribute['bounds']), ability='', bundle=bundle)
         #     self._pages.append(page)
+    def __call__(self, **kwds):
+        return self.vht(kwds)
     
     def current_page(self, app):
         for page in self._pages:

@@ -87,20 +87,22 @@ class Automator(ABC):
         pass
 
     @abstractmethod
-    def _drag(self, x1, y1, x2, y2, duration=0.5):
+    def swipe(self, x1, y1, x2, y2, speed=2000):
         """
-        Drag from (x1, y1) to (x2, y2)
+        Swipe from (x1, y1) to (x2, y2)
 
         Args:
             x1 (float): The start X coordinate.
             y1 (float): The start Y coordinate.
             x2 (float): The end X coordinate.
             y2 (float): The end Y coordinate.
+            speed (int, optional): The drag speed in pixels per second. Default is 2000. Range: 200-40000,
+            If not within the range, set to default value of 2000.
         """
         pass
 
     @abstractmethod
-    def swipe(self, direction, scale):
+    def swipe_ext(self, direction, scale):
         """
         Swipe to direction.
 
@@ -108,6 +110,10 @@ class Automator(ABC):
             direction (str): one of "left", "right", "up", "bottom" or SwipeDirection.LEFT
             scale (float): percent of swipe, range (0, 1.0]
         """
+        pass
+
+    @abstractmethod
+    def input(self, node, text):
         pass
 
     @abstractmethod

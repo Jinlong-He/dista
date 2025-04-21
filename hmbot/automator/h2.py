@@ -50,13 +50,13 @@ class H2(Automator):
     def long_click(self, x, y):
         return self._driver.long_click(x, y)
 
-    def drag(self, x1, y1, x2, y2, speed=2000):
+    def drag(self, x1, y1, x2, y2, speed):
         return self._driver.swipe(x1, y1, x2, y2, speed)
 
-    def _drag(self, x1, y1, x2, y2, duration=0.5):
-        pass
+    def swipe(self, x1, y1, x2, y2, speed):
+        return self._driver.swipe(x1, y1, x2, y2, speed)
 
-    def swipe(self, direction, scale=0.3):
+    def swipe_ext(self, direction, scale=0.3):
         if direction == SwipeDirection.LEFT :
             self._driver.swipe(0.5, 0.5, 0.5-scale, 0.5, 500)
         elif direction == SwipeDirection.RIGHT :
@@ -65,6 +65,11 @@ class H2(Automator):
             self._driver.swipe(0.5, 0.5, 0.5, 0.5-scale, 500)
         elif direction == SwipeDirection.DOWN :
             self._driver.swipe(0.5, 0.5, 0.5, 0.5+scale, 500)
+
+    def input(self, node, text):
+        id = node.attribute['id']
+        if id:
+            self._driver(id=id).input_text(text)
 
     def dump_hierarchy(self):
         return VHTParser._parse_hdc_json(self._driver.dump_hierarchy())

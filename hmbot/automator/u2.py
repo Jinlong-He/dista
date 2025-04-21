@@ -48,26 +48,28 @@ class U2(Automator):
     def long_click(self, x, y):
         return self._driver.long_click(x, y)
 
-    def drag(self, x1, y1, x2, y2, speed=0.5):
+    def drag(self, x1, y1, x2, y2, speed):
         if x1 < 1 and y1 < 1 and x2 < 1 and y2 < 1:
             self.display_info(refresh=True)
             width = self._display_info.width
             height = self._display_info.height
-            print(x1*width, y1*height, x2*width, y2*height, speed)
-            return self._driver.swipe(x1*width, y1*height, x2*width, y2*height, speed)
-        else:
-            return self._driver.swipe(x1, y1, x2, y2, speed)
-
-    def _drag(self, x1, y1, x2, y2, duration=0.5):
-        if x1 < 1 and y1 < 1 and x2 < 1 and y2 < 1:
-            self.display_info(refresh=True)
-            width = self._display_info.width
-            height = self._display_info.height
-            return self._driver.drag(x1 * width, y1 * height, x2 * width, y2 * height, duration)
+            # print(x1*width, y1*height, x2*width, y2*height, speed)
+            duration = speed/4000
+            return self._driver.drag(x1*width, y1*height, x2*width, y2*height, duration)
         else:
             return self._driver.drag(x1, y1, x2, y2, duration)
 
-    def swipe(self, direction, scale=0.4):
+    def swipe(self, x1, y1, x2, y2, speed):
+        if x1 < 1 and y1 < 1 and x2 < 1 and y2 < 1:
+            self.display_info(refresh=True)
+            width = self._display_info.width
+            height = self._display_info.height
+            duration = speed/4000
+            return self._driver.swipe(x1 * width, y1 * height, x2 * width, y2 * height, duration)
+        else:
+            return self._driver.swipe(x1, y1, x2, y2, duration)
+
+    def swipe_ext(self, direction, scale=0.4):
         #to check
         if direction == SwipeDirection.LEFT :
             self.drag(0.5, 0.5, 0.5-scale, 0.5)
@@ -78,12 +80,17 @@ class U2(Automator):
         elif direction == SwipeDirection.DOWN :
             self.drag(0.5, 0.5, 0.5, 0.5+scale)
 
+    def input(self, node, text):
+        id = node.attribute['id']
+        if id:
+            self._driver(resourceId=id).set_text(text)
+
     def dump_hierarchy(self):
         root = VHTParser._parse_adb_xml(self._driver.dump_hierarchy(compressed=True))._root
-        root_child = max(root._children, key=lambda child:
-            (child.attribute['bounds'][1][0] - child.attribute['bounds'][0][0]) * (child.attribute['bounds'][1][1] - child.attribute['bounds'][0][1]))
-        root_child.attribute['type'] = 'root'
-        root_child.attribute['page'] = self._current()['activity']
+        # root_child = max(root._children, key=lambda child:
+        #     (child.attribute['bounds'][1][0] - child.attribute['bounds'][0][0]) * (child.attribute['bounds'][1][1] - child.attribute['bounds'][0][1]))
+        # root_child.attribute['type'] = 'root'
+        # root_child.attribute['page'] = self._current()['activity']
         return VHT(root)
 
     def screenshot(self, path=''):

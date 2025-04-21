@@ -32,6 +32,10 @@ class Device(object):
             sys.exit(-1)
         self.window = None
 
+    def __call__(self, **kwds):
+        self.dump_window(refresh=True)
+        return self.window(kwds)
+
     def install_app(self, app):
         self.automator.install_app(app)
 
@@ -64,11 +68,14 @@ class Device(object):
     def drag(self, x1, y1, x2, y2, speed=2000):
         return self.automator.drag(x1, y1, x2, y2, speed)
 
-    def _drag(self, x1, y1, x2, y2, duration=0.5):
-        return self.automator._drag(x1, y1, x2, y2, duration)
+    def swipe(self, x1, y1, x2, y2, speed=2000):
+        return self.automator.swipe(x1, y1, x2, y2, speed)
 
-    def swipe(self, direction: Union[SwipeDirection, str]):
-        return self.automator.swipe(direction)
+    def swipe_ext(self, direction: Union[SwipeDirection, str]):
+        return self.automator.swipe_ext(direction)
+    
+    def input(self, node, text):
+        return self.automator.input(node, text)
 
     def dump_hierarchy(self):
         return self.automator.dump_hierarchy()
@@ -104,6 +111,7 @@ class Device(object):
         return self.connector.current_ability()
 
     def hop(self, dst_device_name=None):
+        #to check
         if not dst_device_name:
             return
         bundle = self.current_ability().get('bundle')
