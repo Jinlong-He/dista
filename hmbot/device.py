@@ -34,7 +34,7 @@ class Device(object):
 
     def __call__(self, **kwds):
         self.dump_window(refresh=True)
-        return self.window(kwds)
+        return self.window(**kwds)
 
     def install_app(self, app):
         self.automator.install_app(app)
