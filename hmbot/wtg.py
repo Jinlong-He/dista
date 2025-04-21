@@ -1,7 +1,7 @@
-from .page import Page
+from .window import Window
 from .event import Event
 
-class PTG(object):
+class WTG(object):
     def __init__(self, main_page):
         self.main_pages = [main_page]
         self.pages = [main_page]

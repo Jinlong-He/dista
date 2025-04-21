@@ -10,9 +10,9 @@ class Event(ABC):
         pass
 
 class ClickEvent(Event):
-    def __init__(self, device, page, x, y):
+    def __init__(self, device, window, x, y):
         self.device = device
-        self.page = page
+        self.window = window
         self.x = x
         self.y = y
 
@@ -20,19 +20,19 @@ class ClickEvent(Event):
         self.device.click(self.x, self.y)
 
 class InputEvent(Event):
-    def __init__(self, device, page, x, y):
+    def __init__(self, device, window, node, text):
         self.device = device
-        self.page = page
-        self.x = x
-        self.y = y
+        self.window = window
+        self.node = node
+        self.text = text
 
     def execute(self):
-        self.device.click(self.x, self.y)
+        self.device.input(self.node, self.text)
 
 class KeyEvent(Event):
-    def __init__(self, device, page, key):
+    def __init__(self, device, window, key):
         self.device = device
-        self.page = page
+        self.window = window
         self.key = key
 
     def execute(self):

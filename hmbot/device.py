@@ -127,3 +127,7 @@ class Device(object):
         self._drag(sx, sy, dx, dy, 1.0)
         print(f'hop: {bundle} to {dst_device_name}')
         return
+    
+    def execute(self, events):
+        for event in events:
+            event.execute()

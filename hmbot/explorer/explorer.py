@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from ..proto import ExploreMission
-from ..ptg import PTG
+# from ..wtg import PTG
 from ..device import Device
 from ..app.app import App
 from ..event import Event
@@ -15,29 +15,24 @@ class Explorer(ABC):
         if isinstance(app, App):
             self.app = app
 
-    def explore(self, **termination):
-        page = self.device.dump_page(self.app)
-        ptg = PTG(page)
-        while (not self.should_terminate(termination)):
-            if page is None:
-                self.move_on()
-            node = self.best(page.all('clickable'), page.img)
-            self.device.click(node)
-            new_page = self.device.dump_page(self.app)
-            ptg.add_edge(page, new_page, Event(node))
-            page = new_page
+    def explore(self, **goal):
+        window = self.device.dump_window(refresh=True)
+        while (not self.should_terminate(goal)):
+            events = self.best(window, goal)
+            self.device.execute(events=events)
+            window = self.device.dump_window(refresh=True)
+            if not self.verify(window, goal):
+                pass
     
-    def move_on(self):
+    @abstractmethod
+    def best(self, window, **goal):
         pass
-    
-    
-    # def back_to(self, ptg, pre_page):
-    #     pass
 
     @abstractmethod
-    def best(self, nodes, img):
+    def verify(self, window, **goal):
         pass
 
-    def should_terminate(self, **termination):
-        return True
+    @abstractmethod
+    def should_terminate(self, **goal):
+        pass
 
