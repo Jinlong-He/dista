@@ -179,7 +179,7 @@ class VHTParser(object):
             if 'children' in source:
                 children = source['children']
                 for child in children:
-                    root.append(VHTParser.__parse_hdc_json(child))
+                    root.append(VHTParser.__parse_hdc_json(child, device))
             return root
         else:
             raise JsonKeyError('expected key: attributes')
@@ -208,12 +208,18 @@ class VHTParser(object):
                            center = [0,0])
         elif source.tag == 'node':
             extra = source.attrib
-            bound_re = '\[(\d+),(\d+)\]\[(\d+),(\d+)\]'
+            bound_re = '\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]'
             match = re.match(bound_re, extra['bounds'])
             if match:
                 (x1, y1, x2, y2) = map(int, match.groups())
+                # 处理极端值情况
+                if x1 == 2147483647 and y1 == 2147483647 and x2 == -2147483648 and y2 == -2147483648:
+                    # 使用默认值或屏幕中心点
+                    x1, y1, x2, y2 = 0, 0, 100, 100
             else: 
-                raise BoundsError('%s is not in form [x1,y1][x2,y2]' % extra['bounds'])
+                # 如果仍然无法匹配，使用默认值
+                print(f"警告: 无法解析边界值 '{extra['bounds']}'，使用默认值")
+                x1, y1, x2, y2 = 0, 0, 100, 100
             attrib['bundle'] = extra['package']
             root = VHTNode(device=device,
                            attrib=attrib,
@@ -228,5 +234,5 @@ class VHTParser(object):
                            text = extra['text'],
                            center = [int((x1 + x2)/2), int((y1 + y2)/2)])
         for child in source:
-            root.append(VHTParser.__parse_adb_xml(child))
+            root.append(VHTParser.__parse_adb_xml(child, device))
         return root

@@ -289,10 +289,11 @@ class LLM(Explorer):
             element_id = action.get("element_id")
             if element_id is not None and 1 <= element_id <= len(nodes):
                 node = nodes[element_id]
-                op_list.append(ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]))
+                node.click()
+                # op_list.append(ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]))
                 # ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]).execute()
                 op_str = f"Click widget{element_id}: {weights_description[element_id].get('description', '')} at ({node.attribute['center']})"
-                self.device.execute(events=op_list)
+                # self.device.execute(events=op_list)
                 return op_list, op_str
             else:
                 return None, f"无效的元素ID: {element_id}"
@@ -305,13 +306,15 @@ class LLM(Explorer):
             if element_id is not None and 1 <= element_id <= len(nodes):
                 node = nodes[element_id]
                 # 先点击元素
-                op_list.append(
-                    ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]))
+                node.click()
+                # op_list.append(
+                #     ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]))
                 time.sleep(1)
                 # 输入文本
-                op_list.append(InputEvent(self.device, window, node, text))
+                # op_list.append(InputEvent(self.device, window, node, text))
+                node.input(text)
                 op_str = f"{text} was entered in element {element_id}"
-                self.device.execute(events=op_list)
+                # self.device.execute(events=op_list)
                 return op_list, op_str
             else:
                 return None, f"无效的元素ID: {element_id}"
@@ -333,7 +336,7 @@ class LLM(Explorer):
                 return op_list, f"无效的滑动方向: {direction}"
 
             self.device.execute(events=op_list)
-            return f"执行{direction}方向的滑动操作", cmd_list
+            return op_list, f"执行{direction}方向的滑动操作"
 
         elif action_type == "back":
             # 返回
