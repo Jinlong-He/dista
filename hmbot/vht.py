@@ -15,7 +15,7 @@ class VHT(object):
         return str(self._root._dict())
     
     def __call__(self, **kwds):
-        return self._root(kwds)
+        return self._root(**kwds)
 
     def roots(self):
         return self.__call__(type='root')

@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import time
 import math
+import base64
 
 def read(img_path):
     img = cv2.imread(img_path, cv2.IMREAD_COLOR)
