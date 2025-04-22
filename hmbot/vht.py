@@ -34,11 +34,12 @@ class VHTNode(object):
     """
     The class describes a node of view hierarchy tree
     """
-    def __init__(self, attrib={}, **extra):
+    def __init__(self, device=None, attrib={}, **extra):
         if not isinstance(attrib, dict):
             raise TypeError("attrib must be dict, not %s" % (attrib.__class__.__name__,))
         self.attribute = {**attrib, **extra}
         self._children = []
+        self._device = device
 
     def __str__(self):
         return str(self.attribute)
@@ -106,6 +107,17 @@ class VHTNode(object):
                 if value == 'true' or node.attribute[key] == 'true':
                     self.attribute[key] = 'true'
         self.attribute['text'] += node.attribute['text']
+    
+    def click(self):
+        x, y = self.attribute['center']
+        self._device.click(x, y)
+
+    def long_click(self):
+        x, y = self.attribute['center']
+        self._device.long_click(x, y)
+
+    def input(self, text):
+        self._device.input(self, text)
 
     
 
@@ -133,12 +145,12 @@ class VHTParser(object):
             json.dump(vht._root._dict(), write_file, indent=indent, ensure_ascii=False)
     
     @classmethod
-    def _parse_hdc_json(cls, source):
-        root = VHTParser.__parse_hdc_json(source)
+    def _parse_hdc_json(cls, source, device):
+        root = VHTParser.__parse_hdc_json(source, device)
         return VHT(root)
 
     @classmethod
-    def __parse_hdc_json(cls, source):
+    def __parse_hdc_json(cls, source, device):
         if 'attributes' in source:
             extra = source['attributes']
             bound_re = '\[(\d+),(\d+)\]\[(\d+),(\d+)\]'
@@ -152,7 +164,8 @@ class VHTParser(object):
                 attrib['bundle'] = extra['bundleName']
                 attrib['page'] = extra['pagePath']
 
-            root = VHTNode(attrib=attrib,
+            root = VHTNode(device=device,
+                           attrib=attrib,
                            bounds = [[x1,y1],[x2,y2]],
                            clickable = extra['clickable'],
                            longClickable = extra['longClickable'],
@@ -172,16 +185,17 @@ class VHTParser(object):
             raise JsonKeyError('expected key: attributes')
 
     @classmethod
-    def _parse_adb_xml(cls, source):
+    def _parse_adb_xml(cls, source, device):
         source = ET.fromstring(source)
-        root = VHTParser.__parse_adb_xml(source)
+        root = VHTParser.__parse_adb_xml(source, device)
         return VHT(root)
 
     @classmethod
-    def __parse_adb_xml(cls, source):
+    def __parse_adb_xml(cls, source, device):
         attrib = {'bundle': '', 'page': ''}
         if source.tag == 'hierarchy':
-            root = VHTNode(attrib=attrib,
+            root = VHTNode(device=device,
+                           attrib=attrib,
                            bounds = [[0,0],[0,0]],
                            clickable = '',
                            longClickable = '',
@@ -201,7 +215,8 @@ class VHTParser(object):
             else: 
                 raise BoundsError('%s is not in form [x1,y1][x2,y2]' % extra['bounds'])
             attrib['bundle'] = extra['package']
-            root = VHTNode(attrib=attrib,
+            root = VHTNode(device=device,
+                           attrib=attrib,
                            bounds = [[x1,y1],[x2,y2]],
                            clickable = extra['clickable'],
                            longClickable = extra['long-clickable'],

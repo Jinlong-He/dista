@@ -71,8 +71,8 @@ class H2(Automator):
         if id:
             self._driver(id=id).input_text(text)
 
-    def dump_hierarchy(self):
-        return VHTParser._parse_hdc_json(self._driver.dump_hierarchy())
+    def dump_hierarchy(self, device):
+        return VHTParser._parse_hdc_json(self._driver.dump_hierarchy(), device)
 
     def screenshot(self, path=''):
         if isinstance(path, str):

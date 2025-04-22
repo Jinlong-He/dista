@@ -117,7 +117,7 @@ class Automator(ABC):
         pass
 
     @abstractmethod
-    def dump_hierarchy(self):
+    def dump_hierarchy(self, device):
         """
         Dump the UI hierarchy of the device screen.
 

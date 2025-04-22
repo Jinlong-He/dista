@@ -77,8 +77,10 @@ class Device(object):
     def input(self, node, text):
         return self.automator.input(node, text)
 
-    def dump_hierarchy(self):
-        return self.automator.dump_hierarchy()
+    def dump_hierarchy(self, device=None):
+        if device is None:
+            device = self
+        return self.automator.dump_hierarchy(device)
 
     def screenshot(self, path=''):
         return self.automator.screenshot(path)
@@ -92,9 +94,11 @@ class Device(object):
     def recent(self):
         self.automator.recent()
     
-    def dump_window(self, refresh=False):
+    def dump_window(self, device=None, refresh=False):
+        if device is None:
+            device = self
         if self.window == None or refresh:
-            vht = self.dump_hierarchy()
+            vht = self.dump_hierarchy(device=device)
             img = self.screenshot()
             self.window = Window(vht=vht, img=img)
         return self.window
