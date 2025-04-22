@@ -54,14 +54,14 @@ class Device(object):
     def click(self, x, y):
         return self.automator.click(x, y)
 
-    def click(self, node):
+    def _click(self, node):
         (x, y) = node.attrib['center']
         return self.automator.click(x, y)
 
     def long_click(self, x, y):
         return self.automator.long_click(x, y)
 
-    def long_click(self, node):
+    def _long_click(self, node):
         (x, y) = node.attrib['center']
         return self.automator.long_click(x, y)
 

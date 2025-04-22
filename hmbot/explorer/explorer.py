@@ -15,24 +15,15 @@ class Explorer(ABC):
         if isinstance(app, App):
             self.app = app
 
-    def explore(self, **goal):
-        window = self.device.dump_window(refresh=True)
-        while (not self.should_terminate(goal)):
-            events = self.best(window, goal)
-            self.device.execute(events=events)
-            window = self.device.dump_window(refresh=True)
-            if not self.verify(window, goal):
-                pass
+    def explore(self, key='test', value=''):
+        pass
     
-    @abstractmethod
-    def best(self, window, **goal):
-        pass
+    # @abstractmethod
+    # def best(self, window, **goal):
+    #     pass
+    #
+    # @abstractmethod
+    # def verify(self, window_before, window_after, **goal):
+    #     pass
 
-    @abstractmethod
-    def verify(self, window, **goal):
-        pass
-
-    @abstractmethod
-    def should_terminate(self, **goal):
-        pass
 
