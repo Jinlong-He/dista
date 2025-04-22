@@ -1,4 +1,4 @@
-extraction_prompt = """
+test_understanding_prompt = """
 ## BACKGROUND
 Suppose you are mobile phone app testers specialized in cross-platform testing. You are good at extracting testing scenarios from source scripts and understanding the functional intent behind them. Here is the source script to be extracted:
 ```python
@@ -44,6 +44,9 @@ Example answers:
 ```
 """
 
+hardware_understanding_prompt = """
+"""
+
 
 image_description_prompt = """
 ## Task
@@ -83,7 +86,7 @@ Example response:
 """
 
 
-next_action_prompt = """
+next_event_prompt = """
 ## Test Scenario: 
 {}
 Note: The original test scenario is from Android platform and needs to be adapted to the HarmonyOS platform. There may be differences in UI layouts, element identifiers, and interaction patterns between these platforms.
@@ -121,13 +124,14 @@ You can only choose from the following types of actions:
 
 ## Response Format
 Return your decision strictly in the following JSON format, without any explanatory language:
-{{"action": "click", "element_id": 3}}
-{{"action": "input", "element_id": 2, "text": "测试文本"}}
-{{"action": "swipe", "direction": "up"}}
-{{"action": "back"}}
-{{"action": "home"}}
-{{"action": "finish"}}
+{{"event_type": "click", "element_id": 3}}
+{{"event_type": "input", "element_id": 2, "text": "测试文本"}}
+{{"event_type": "swipe", "direction": "up"}}
+{{"event_type": "back"}}
+{{"event_type": "home"}}
 """
+
+# {{"event_type": "finish"}}
 
 
 verify_prompt = """
@@ -146,39 +150,44 @@ verify_prompt = """
 ## Analysis Task
 Please carefully analyze the screenshots and UI element changes before and after the operation, and strictly evaluate according to the following dimensions:
 
-1. Goal Direction:
+1. Historical Context:
+   - Review all previously completed operations
+   - Evaluate if the current operation logically follows previous steps
+   - Check for any unnecessary repetition of operations
+
+2. Goal Direction:
    - Whether the operation performed is moving in the correct direction toward the test goal
    - Whether there is any deviation from the test goal
    - If there is deviation, what specific aspects it manifests in
 
-2. Interface Response:
+3. Interface Response:
    - Whether the interface has undergone significant changes (ignoring status information such as time and battery)
    - Whether the changes align with the expected operation results
    - If there are no changes, what might be the possible reasons
 
-3. Goal Completion:
-   - Whether the current state has completed the result described in the test scenario
+4. Goal Completion:
+   - Considering all executed operations, whether the current state has completed the result described in the test scenario
    - Whether further operations are needed
    - Specific manifestations of the completion level
 
-4. Next Step Recommendations:
-   - Based on the current state, what operations should be taken to continue testing
-   - If the current path is incorrect, how to adjust
-
+5. Termination Assessment:
+   - Based on the test goal and operation sequence, determine if testing should conclude
+   - If termination is appropriate, identify specific completion indicators
+   - If continuation is needed, specify remaining steps required
 
 ## Output Requirements
 Please return the analysis results strictly in the following format:
 {{
     "validity": true/false, // Whether the operation is valid (successfully executed, correct UI response, matches functional intent, and leads to reasonable state change)
-    "goal_completion": true/false, // Whether the test scenario's objective has been fully achieved
+    "goal_completion": true/false, // Whether the test scenario's objective has been fully achieved according to the operations performed
     "analysis": "Detailed analysis of the operation's effectiveness, interface changes, and progress toward the test goal",
     "next_steps": "Suggested next steps based on the current state, including correction if the current path is incorrect"
 }}
 
 Ensure your analysis focuses on functional intent rather than exact UI matching, considering the cross-platform adaptation context. 
-Be precise, objective, and base your evaluation solely on the evidence from screenshots and UI elements. 
+Be precise, objective, and base your evaluation on evidence from operation history, screenshots, and UI elements. 
 If the current operation deviates from the test goal, clearly indicate this and provide correction suggestions.
-
+When determining whether testing should terminate, consider the completion of the test goal, the sequence of operations performed, and the current interface state.
 """
 
 

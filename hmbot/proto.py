@@ -63,3 +63,7 @@ class AudioStatus:
 class MicroStatus:
     START = 'start'
     STOP = 'stop'
+
+class ExploreKind:
+    TEST = 'test'
+    HARDWARE = 'hardware'
