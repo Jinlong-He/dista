@@ -20,3 +20,21 @@ class Window(object):
         for page in self._pages:
             if page.bundle == app.bundle:
                 return page
+
+    def _is_same(self, new_window):
+        # todo
+        if isinstance(new_window, Window):
+            vht_sim = self.vht_similarity(new_window)
+            img_sim = self.img_similarity(new_window)
+            print(f'vht_sim={vht_sim}, img_sim={img_sim}')
+        return False
+
+    def vht_similarity(self, new_window):
+        # todo
+        vht_sim = 0
+        return vht_sim
+
+    def img_similarity(self, new_window):
+        # todo
+        img_sim = 0
+        return img_sim

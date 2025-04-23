@@ -114,23 +114,8 @@ class Device(object):
     def current_ability(self):
         return self.connector.current_ability()
 
-    def hop(self, dst_device_name=None):
-        #to check
-        if not dst_device_name:
-            return
-        bundle = self.current_ability().get('bundle')
-        self.recent()
-        time.sleep(1)
-        self.swipe('left')
-        vht = self.dump_hierarchy()
-        snode = vht.all(type='root')
-        [sx, sy] = snode[0].attribute.get('center')
-        dnode = vht.all(text=dst_device_name)
-        [dx, dy] = dnode[0].attribute.get('center')
-        time.sleep(1)
-        self._drag(sx, sy, dx, dy, 1.0)
-        print(f'hop: {bundle} to {dst_device_name}')
-        return
+    def hop(self, dst_device_name=None, app_name=None):
+        return self.automator.hop(dst_device_name, app_name)
     
     def execute(self, events):
         for event in events:
