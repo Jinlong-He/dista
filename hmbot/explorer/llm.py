@@ -7,7 +7,7 @@ from .explorer import Explorer
 from .prompt import *
 from ..cv import _crop, encode_image
 from ..event import *
-from ..proto import SwipeDirection, ExploreGoal, AudioStatus
+from ..proto import SwipeDirection, ExploreGoal, AudioStatus, ResourceType
 
 
 class LLM(Explorer):
@@ -83,7 +83,7 @@ class LLM(Explorer):
         if goal.get('key') == ExploreGoal.TESTCASE:
             return False
         if goal.get('key') == ExploreGoal.HARDWARE:
-            if goal.get('value') == 'audio':
+            if goal.get('value') == ResourceType.AUDIO:
                 status = self.device.get_audio_status()
                 if status in [AudioStatus.START, AudioStatus.START_, AudioStatus.DUCK]:
                     return True
