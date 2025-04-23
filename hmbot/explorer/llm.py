@@ -79,7 +79,7 @@ class LLM(Explorer):
             feedback.append("Suggested Next Steps: " + verify_result["next_steps"])
             print("Feedback: ", feedback)
 
-    def _should_terminate(self, **goal):
+    def _should_terminate(self, goal):
         if goal.get('key') == ExploreGoal.TESTCASE:
             return False
         if goal.get('key') == ExploreGoal.HARDWARE:
@@ -99,7 +99,8 @@ class LLM(Explorer):
         if key == ExploreGoal.TESTCASE:
             understanding_prompt = test_understanding_prompt.format(value)
         elif key == ExploreGoal.HARDWARE:
-            understanding_prompt = hardware_understanding_prompt.format(value)
+            # understanding_prompt = hardware_understanding_prompt.format(value)
+            return hardware_understanding_prompt
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -131,6 +132,7 @@ class LLM(Explorer):
         images = []
         for node in nodes:
             images.append(_crop(screenshot, node.attribute['bounds']))
+            print(node)
 
         # 显示可点击控件
         # for image in images:

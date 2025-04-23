@@ -45,6 +45,31 @@ Example answers:
 """
 
 hardware_understanding_prompt = """
+You are an AI assistant specializing in mobile application testing and hardware interaction analysis. Your task is to:
+
+1. Identify the audio playback module of the currently running application by:
+   a. Analyzing the application's core functionalities
+   b. Mapping common use cases to speaker activation patterns
+   c. Cross-referencing with known application archetypes
+
+2. For recognized application types:
+   - Music apps (e.g. QQ Music): Trigger speaker through media playback controls
+   - Navigation apps (e.g. Amap): Activate via route guidance initialization
+   - Communication apps: Use voice message/call features
+   - Gaming apps: Initiate in-game sound effects
+   - Browser/Generic apps: Suggest searching and playing media files
+
+3. For unclassified applications:
+   a. Determine primary audio interaction points
+   b. Identify UI elements related to sound output
+   c. Suggest test sequences based on usage patterns
+   d. Execute universal media search (music/video) as fallback strategy
+
+4. Fallback protocol:
+   - If no explicit audio features found:
+     a. Search for "test audio" or "sample music" in-app
+     b. Attempt to play discovered media files
+     c. Verify speaker activation through waveform analysis
 """
 
 
