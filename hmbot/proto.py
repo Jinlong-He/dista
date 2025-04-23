@@ -64,6 +64,6 @@ class MicroStatus:
     START = 'start'
     STOP = 'stop'
 
-class ExploreKind:
-    TEST = 'test'
+class ExploreGoal(str, Enum):
+    TESTCASE = 'testcase'
     HARDWARE = 'hardware'

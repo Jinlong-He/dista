@@ -7,7 +7,7 @@ from .explorer import Explorer
 from .prompt import *
 from ..cv import _crop, encode_image
 from ..event import *
-from ..proto import SwipeDirection
+from ..proto import SwipeDirection, ExploreGoal
 
 
 class LLM(Explorer):
@@ -89,9 +89,9 @@ class LLM(Explorer):
         """
         print("-----------------------根据value构建scenario-----------------------")
         understanding_prompt = ''
-        if key == 'test':
+        if key == ExploreGoal.TESTCASE:
             understanding_prompt = test_understanding_prompt.format(value)
-        elif key == 'hardware':
+        elif key == ExploreGoal.HARDWARE:
             understanding_prompt = hardware_understanding_prompt.format(value)
         response = self.client.chat.completions.create(
             model=self.model,
