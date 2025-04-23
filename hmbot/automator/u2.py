@@ -83,10 +83,10 @@ class U2(Automator):
     def input(self, node, text):
         u2_nodes = []
         if len(node._compressed) == 0:
-            u2_nodes = self.identify(node=node)
+            u2_nodes = self.identify(node=node, type='android.widget.EditText')
         else:
             for child in node._compressed:
-                u2_nodes.extend(self.identify(node=child))
+                u2_nodes.extend(self.identify(node=child, type='android.widget.EditText'))
         for u2_node in u2_nodes:
             u2_node.set_text(text)
 
@@ -158,7 +158,10 @@ class U2(Automator):
         print(f'hop: {app_name} to {dst_device_name}')
         return True
 
-    def identify(self, node):
-        return self._driver(resourceId=node.attribute['id'], 
-                            className=node.attribute['type'],
-                            text=node.attribute['text'])
+    def identify(self, node, **kwds):
+        id = node.attribute['id']
+        type = node.attribute['type']
+        text = node.attribute['text']
+        if 'type' in kwds:
+            type = kwds['type']
+        return self._driver(resourceId=id, className=type, text=text)
