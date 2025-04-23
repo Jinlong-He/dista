@@ -1,7 +1,7 @@
 import json
 import re
 import time
-import cv2
+# import cv2
 from openai import OpenAI
 from .explorer import Explorer
 from .prompt import *
@@ -16,87 +16,83 @@ class LLM(Explorer):
         self.client = OpenAI(api_key=api_key, base_url=url)
         self.model = model
 
-
-    def explore(self, key='test', value=''):
-        if key == 'test':
-            self._run_test_transition(value)
-        elif key == 'hardware':
-            self._run_hardware_transition(value)
-
-    def _run_test_transition(self, script):
+    def explore(self, **goal):
         """
-        运行测试迁移
+        探索
         """
-        # 测试脚本理解
-        scenario = self._test_understand(script)
+        scenario = self._understand(goal.get('key'), goal.get('value'))
 
-        # 初始化测试记录
-        test_record = []
-        # 所有已完成的操作
-        completed_actions = []
+        # 所有的已完成的操作，不包括错误的操作
+        events_without_error = []
+
+        # 所有已完成的操作，包括错误的操作
+        all_completed_events = []
         # 反馈信息
         feedback = []
         # 界面元素信息
-        nodes = []
-        clickable_weights_description_before = []
+        nodes_before = []
+        nodes_description_before = []
 
+        steps = 0
 
-        for _ in range(20):
-            # 获取当前界面
+        while True and steps < goal.get('max_steps'):
+            # 获取执行操作前的界面
             window_before = self.device.dump_window(refresh=True)
 
-            # 获取界面元素信息（只有第一次需要获取，后面直接使用verify获取的元素）
-            if not clickable_weights_description_before:
-                clickable_weights_description_before, nodes = self._widget_detect(window_before)
+            # 获取界面元素信息（只有第一次需要获取，因为verify前获取了操作后的界面信息）
+            if not nodes_description_before:
+                nodes_description_before, nodes_before = self._nodes_detect(window_before)
 
-            # 获取下一次操作
-            next_action = self._get_next_action(clickable_weights_description_before, scenario, window_before,
-                                                completed_actions, feedback)
+            # 获取下一次操作事件，event_explanation是将event转换成大模型易于理解的形式
+            event, event_explanation = self._get_next_event(scenario, nodes_description_before, nodes_before,
+                                                            window_before, all_completed_events, feedback)
 
             # 执行操作
-            op_list, op_explanation = self._execute_action(next_action, clickable_weights_description_before, nodes, window_before)
-            # print(f"op_list: {op_list}")
-            test_record.extend(op_list)
-            print(op_explanation)
+            print("-----------------------执行大模型决定的操作-----------------------")
+            event.execute()
+            print(event_explanation)
+            all_completed_events.append(event_explanation)
+            steps += 1
 
             # 等待UI更新
             time.sleep(2)
             window_after = self.device.dump_window(refresh=True)
+            nodes_description_after, nodes_after = self._nodes_detect(window_after)
 
-            # 如果操作是完成或返回桌面，结束测试
-            if next_action.get("action") == 'finish' or next_action.get("action") == 'home':
-                break
-
-            # 如果操作是返回，直接返回
-            if next_action["action"] == "back":
+            if isinstance(event, KeyEvent) and event.key == SystemKey.BACK:
                 # 直接返回不需要验证操作
-                clickable_weights_description_before, nodes = self._widget_detect(window_after)
+                nodes_description_before, nodes_before = nodes_description_after, nodes_after
                 continue
 
             # 验证操作结果
-            result_json, clickable_weights_description_before, nodes = self._verify_operation_result(window_before, window_after, scenario, op_explanation,
-                                                                                  clickable_weights_description_before)
+            verify_result = self._verify_event(scenario, event_explanation, window_before, nodes_description_before,
+                                               window_after, nodes_description_after)
+
+            # 如果当前操作有效，将其添加到已完成的操作列表
+            if verify_result["validity"]:
+                events_without_error.append(event)
+
+            # 如果验证结果是完成，结束探索
+            if verify_result["goal_completion"] or (isinstance(event, KeyEvent) and event.key == SystemKey.HOME):
+                break
+
+            nodes_description_before, nodes_before = nodes_description_after, nodes_after
 
             feedback.clear()
-            completed_actions.append(op_explanation)
-
-            feedback.append("Analysis of the previous operation: " + result_json["analysis"])
-            if result_json["goal_completion"]:
-                break
-            feedback.append("Suggested Next Steps: " + result_json["next_steps"] + "\n")
+            feedback.append("Analysis of the previous operation: " + verify_result["analysis"] + "\n")
+            feedback.append("Suggested Next Steps: " + verify_result["next_steps"])
             print("Feedback: ", feedback)
 
-        print(completed_actions)
-
-    def _run_hardware_transition(self, value):
-        pass
-
-    def _test_understand(self, script):
+    def _understand(self, key, value):
         """
-        测试脚本理解
+        理解 value 构建 scenario
         """
-        print("-----------------------根据测试脚本构建测试场景-----------------------")
-        text = extraction_prompt.format(script)
+        print("-----------------------根据value构建scenario-----------------------")
+        understanding_prompt = ''
+        if key == 'test':
+            understanding_prompt = test_understanding_prompt.format(value)
+        elif key == 'hardware':
+            understanding_prompt = hardware_understanding_prompt.format(value)
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -107,7 +103,7 @@ class LLM(Explorer):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": text},
+                        {"type": "text", "text": understanding_prompt},
                     ],
                 },
             ],
@@ -117,11 +113,11 @@ class LLM(Explorer):
         print(scenario)
         return scenario
 
-
-    def _widget_detect(self, window):
+    def _nodes_detect(self, window):
         """
         检测与描述相符合的控件
         """
+        print("-----------------------控件检测-----------------------")
         nodes = window(clickable='true')
         screenshot = window.img
 
@@ -135,15 +131,15 @@ class LLM(Explorer):
         #     cv2.waitKey(0)
         #     cv2.destroyAllWindows()
 
-        clickable_weights_description = self._add_information(nodes, screenshot, images)
-        print(clickable_weights_description)
-        return clickable_weights_description, nodes
+        nodes_description = self._add_information(nodes, screenshot, images)
+        print(nodes_description)
+        return nodes_description, nodes
 
     def _add_information(self, nodes, screenshot, images):
         """
         提取每个控件中的信息
         """
-        clickable_weights_description = []
+        nodes_description = []
         image_list = []
         for index, node in enumerate(nodes):
             node_info = {'element_id': index, 'type': node.attribute['type']}
@@ -152,18 +148,18 @@ class LLM(Explorer):
             if node_info['description'] is None:
                 node_info['description'] = 'image'
                 image_list.append(images[index])
-            clickable_weights_description.append(node_info)
+            nodes_description.append(node_info)
         if image_list:
             image_description = self._ask_llm_image(screenshot, image_list)
             # print(len(image_list))
             # print(image_description)
             index = 0
 
-            for node_info in clickable_weights_description:
+            for node_info in nodes_description:
                 if node_info['description'] == 'image':
                     node_info['description'] = image_description[index]
                     index += 1
-        return clickable_weights_description
+        return nodes_description
 
     def _extract_nested_text(self, node):
         """
@@ -180,23 +176,23 @@ class LLM(Explorer):
             texts.extend(self._extract_nested_text(child))
         return texts
 
-    def _ask_llm_image(self, screenshot, weights):
+    def _ask_llm_image(self, screenshot, nodes):
         """
         发送截图和多个控件截图给LLM，获取每个控件的描述列表
         """
         # 获取组件数量
-        component_count = len(weights)
+        nodes_count = len(nodes)
 
         # 使用从prompt.py导入的模板
-        description_prompt = image_description_prompt.format(component_count=component_count)
+        description_prompt = image_description_prompt.format(component_count=nodes_count)
 
-        # Build content with all component images
+        # 准备消息内容
         content = [{"type": "text", "text": description_prompt},
                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(screenshot)}"}}]
 
-        # Add each component image with a label
-        for i, component in enumerate(weights):
-            content.append({"type": "text", "text": f"Component {i + 1} of {component_count}:"})
+        # 添加每个控件的截图
+        for i, component in enumerate(nodes):
+            content.append({"type": "text", "text": f"Component {i + 1} of {nodes_count}:"})
             content.append(
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(component)}"}})
 
@@ -218,7 +214,7 @@ class LLM(Explorer):
         response_text = response.choices[0].message.content
 
         try:
-            match = re.search(r'\[(.*)\]', response_text, re.DOTALL)
+            match = re.search(r'\[(.*)]', response_text, re.DOTALL)
             if match:
                 items_str = match.group(1)
                 items = re.findall(r'\'([^\']*?)\'|\"([^\"]*?)\"', items_str)
@@ -226,25 +222,25 @@ class LLM(Explorer):
                 return descriptions
             else:
                 # 如果没有找到列表格式，返回空列表
-                return ["未知功能"] * len(weights)
+                return ["未知功能"] * len(nodes)
         except Exception as e:
             print(f"解析响应时出错: {e}")
-            return ["未知功能"] * len(weights)
+            return ["未知功能"] * len(nodes)
 
-    def _get_next_action(self, weights_description, test_scenario, window, completed_actions=None, feedback=None):
+    def _get_next_event(self, scenario, nodes_description, nodes, window, all_completed_events=None, feedback=None):
         """
-        使用大模型决定下一步操作
+        使用大模型决定下一步操作事件
         """
         print("-----------------------大模型决定下一步操作-----------------------")
 
-        if completed_actions is None:
-            completed_actions = []
+        if all_completed_events is None:
+            all_completed_events = []
 
         if feedback is None:
             feedback = []
 
         # 构建提示词
-        prompt = next_action_prompt.format(test_scenario, weights_description, completed_actions, feedback)
+        prompt = next_event_prompt.format(scenario, nodes_description, all_completed_events, feedback)
 
         # 准备消息内容
         messages = [
@@ -261,110 +257,61 @@ class LLM(Explorer):
                 messages=messages,
                 stream=False,
             )
-            action_json = response.choices[0].message.content
+            event_str = response.choices[0].message.content
             try:
                 # 尝试解析JSON
-                action = json.loads(action_json)
+                event_json = json.loads(event_str)
             except json.JSONDecodeError as e:
-                action = json.loads(re.search(r'\{.*\}', action_json, re.DOTALL).group(0))
+                event_json = json.loads(re.search(r'\{.*}', event_str, re.DOTALL).group(0))
 
-            print("大模型返回的下一步动作：", action)
-            return action
+            print("大模型返回的下一步动作：", event_json)
 
         except Exception as e:
             print(f"调用大模型API失败: {e}")
             return {"action": "error", "message": str(e)}
 
-    def _execute_action(self, action, weights_description, nodes, window):
-        """
-        执行大模型决定的操作
-        """
-        print("-----------------------执行大模型决定的操作-----------------------")
-
-        action_type = action.get("action")
-        op_list = []
-
-        if action_type == "click":
-            # 点击元素
-            element_id = action.get("element_id")
-            if element_id is not None and 1 <= element_id <= len(nodes):
+        # 解析大模型返回的JSON
+        event_type = event_json.get("event_type")
+        if event_type == "click":
+            element_id = event_json.get("element_id")
+            if element_id is not None and 1 <= element_id <= len(nodes_description):
                 node = nodes[element_id]
-                node.click()
-                # op_list.append(ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]))
-                # ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]).execute()
-                op_str = f"Click widget{element_id}: {weights_description[element_id].get('description', '')} at ({node.attribute['center']})"
-                # self.device.execute(events=op_list)
-                return op_list, op_str
+                # 构建操作描述，易于大模型理解
+                event_explanation = f"Click widget{element_id}: {nodes_description[element_id]['description']} at ({node.attribute['center']})"
+                return ClickEvent(node), event_explanation
             else:
-                return None, f"无效的元素ID: {element_id}"
-
-        elif action_type == "input":
-            # 输入文本
-            element_id = action.get("element_id")
-            text = action.get("text", "")
-
-            if element_id is not None and 1 <= element_id <= len(nodes):
+                return None
+        elif event_type == "input":
+            element_id = event_json.get("element_id")
+            text = event_json.get("text", "")
+            if element_id is not None and 1 <= element_id <= len(nodes_description):
                 node = nodes[element_id]
-                # 先点击元素
-                node.click()
-                # op_list.append(
-                #     ClickEvent(self.device, window, node.attribute['center'][0], node.attribute['center'][1]))
-                time.sleep(1)
-                # 输入文本
-                # op_list.append(InputEvent(self.device, window, node, text))
-                node.input(text)
-                op_str = f"{text} was entered in element {element_id}"
-                # self.device.execute(events=op_list)
-                return op_list, op_str
+                event_explanation = f"Input text '{text}' into widget{element_id}: {nodes_description[element_id]['description']}"
+                return InputEvent(node, text), event_explanation
             else:
-                return None, f"无效的元素ID: {element_id}"
-
-        elif action_type == "swipe":
-            # 滑动屏幕
-            direction = action.get("direction")
-        
-            # 根据方向设置滑动命令
-            if direction == "up":
-                op_list.append(SwipeExtEvent(self.device, window, SwipeDirection.UP))
-            elif direction == "down":
-                op_list.append(SwipeExtEvent(self.device, window, SwipeDirection.DOWN))
-            elif direction == "left":
-                op_list.append(SwipeExtEvent(self.device, window, SwipeDirection.LEFT))
-            elif direction == "right":
-                op_list.append(SwipeExtEvent(self.device, window, SwipeDirection.RIGHT))
+                return None
+        elif event_type == "swipe":
+            direction = event_json.get("direction")
+            if direction in ["left", "right", "up", "down"]:
+                event_explanation = f"Swipe {direction} to the screen"
+                return SwipeExtEvent(self.device, window, SwipeDirection(direction)), event_explanation
             else:
-                return op_list, f"无效的滑动方向: {direction}"
-
-            self.device.execute(events=op_list)
-            return op_list, f"执行{direction}方向的滑动操作"
-
-        elif action_type == "back":
-            # 返回
-            op_list.append(KeyEvent(self.device, window, SystemKey.BACK))
-            self.device.execute(events=op_list)
-            return op_list, "A return operation was performed"
-
-        elif action_type == "home":
-            # 返回
-            op_list.append(KeyEvent(self.device, window, SystemKey.HOME))
-            self.device.execute(events=op_list)
-            return op_list, "A return home operation was performed"
-
-        elif action_type == "finish":
-            # 完成测试
-            return "Finish"
-
+                return None
+        elif event_type == "back":
+            event_explanation = "Go back to the previous screen"
+            return KeyEvent(self.device, window, SystemKey.BACK), event_explanation
+        elif event_type == "home":
+            event_explanation = "Return to the home screen"
+            return KeyEvent(self.device, window, SystemKey.HOME), event_explanation
         else:
-            return f"未知的操作类型: {action_type}"
+            return None, "Unknown event type"
 
-    def _verify_operation_result(self, window_before, window_after, test_scenario, operation,
-                                 element_descriptions_before):
+    def _verify_event(self, scenario, event_explanation, window_before, nodes_description_before, window_after,
+                      nodes_description_after):
         """
         验证操作结果
         """
         print("-----------------------验证操作结果-----------------------")
-        # 获取操作后的UI元素
-        element_descriptions_after, elements_after = self._widget_detect(window_after)
 
         before_image_base64 = encode_image(window_before.img)
         before_image_content = f"data:image/jpeg;base64,{before_image_base64}"
@@ -373,7 +320,8 @@ class LLM(Explorer):
         after_image_content = f"data:image/jpeg;base64,{after_image_base64}"
 
         # 构建提示词
-        prompt = verify_prompt.format(test_scenario, operation, element_descriptions_before, element_descriptions_after)
+        prompt = verify_prompt.format(scenario, event_explanation, nodes_description_before,
+                                      nodes_description_after)
 
         # 准备消息内容
         messages = [
@@ -398,11 +346,11 @@ class LLM(Explorer):
             messages=messages,
             stream=False,
         )
-        result_text = response.choices[0].message.content
-        print("验证结果:", result_text)
+        verify_result_str = response.choices[0].message.content
+        print("验证结果:", verify_result_str)
 
         # 解析JSON
-        json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
-        if json_match:
-            result = json.loads(json_match.group(0))
-            return result, element_descriptions_after, elements_after
+        verify_result_json = re.search(r'\{.*}', verify_result_str, re.DOTALL)
+        if verify_result_json:
+            verify_result = json.loads(verify_result_json.group(0))
+            return verify_result
