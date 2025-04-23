@@ -21,13 +21,22 @@ class VHT(object):
         return self.__call__(type='root')
     
     def _compress(self, node):
-        if len(node._children) == 1 and node.attribute['bounds'] == node._children[0].attribute['bounds']:
+        if self._assert_compress(node):
             node._compress(node._children[0])
             node._children = node._children[0]._children
             self._compress(node)
         else:
             for child in node._children:
                 self._compress(child)
+
+    def _assert_compress(self, node):
+        if len(node._children) == 1:
+            s_attri = node.attribute
+            c_attri = node._children[0].attribute
+            if s_attri['bounds'] == c_attri['bounds']:
+            # and (s_attri['text']=='' or c_attri['text']==''):
+                return True
+        return False
     
 
 class VHTNode(object):
@@ -40,6 +49,7 @@ class VHTNode(object):
         self.attribute = {**attrib, **extra}
         self._children = []
         self._device = device
+        self._compressed = set()
 
     def __str__(self):
         return str(self.attribute)
@@ -106,7 +116,12 @@ class VHTNode(object):
              if key in ['clickable', 'longClickable', 'selected', 'checkable', 'checked']:
                 if value == 'true' or node.attribute[key] == 'true':
                     self.attribute[key] = 'true'
-        self.attribute['text'] += node.attribute['text']
+        if node.attribute['text'] not in self.attribute['text']:
+            self.attribute['text'] += '|' + node.attribute['text']
+        if node.attribute['type'] not in self.attribute['type']:
+            self.attribute['type'] += '|' + node.attribute['type']
+        self._compressed.add(node)
+        self._compressed.add(self)
     
     def click(self):
         x, y = self.attribute['center']

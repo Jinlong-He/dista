@@ -81,9 +81,14 @@ class U2(Automator):
             self.swipe(0.5, 0.5, 0.5, 0.5+scale)
 
     def input(self, node, text):
-        id = node.attribute['id']
-        if id:
-            self._driver(resourceId=id).set_text(text)
+        u2_nodes = []
+        if len(node._compressed) == 0:
+            u2_nodes = self.identify(node=node)
+        else:
+            for child in node._compressed:
+                u2_nodes.extend(self.identify(node=child))
+        for u2_node in u2_nodes:
+            u2_node.set_text(text)
 
     def dump_hierarchy(self, device):
         root = VHTParser._parse_adb_xml(self._driver.dump_hierarchy(compressed=True), device)._root
@@ -152,3 +157,8 @@ class U2(Automator):
         self.drag(0.5, 0.5, dx, dy, 1.0)
         print(f'hop: {app_name} to {dst_device_name}')
         return True
+
+    def identify(self, node):
+        return self._driver(resourceId=node.attribute['id'], 
+                            className=node.attribute['type'],
+                            text=node.attribute['text'])

@@ -113,3 +113,6 @@ class H2(Automator):
 
     def hop(self, dst_device_name=None, app_name=None):
         pass
+
+    def identify(self, node):
+        pass

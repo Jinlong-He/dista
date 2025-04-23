@@ -185,3 +185,8 @@ class Automator(ABC):
         """
         Hop a app to a device.
         """
+        pass
+
+    @abstractmethod
+    def identify(self, node):
+        pass
