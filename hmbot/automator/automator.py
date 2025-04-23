@@ -179,3 +179,9 @@ class Automator(ABC):
         Click Recent button.
         """
         pass
+
+    @abstractmethod
+    def hop(self, dst_device_name=None, app_name=None):
+        """
+        Hop a app to a device.
+        """

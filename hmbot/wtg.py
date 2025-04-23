@@ -2,38 +2,38 @@ from .window import Window
 from .event import Event
 
 class WTG(object):
-    def __init__(self, main_page):
-        self.main_pages = [main_page]
-        self.pages = [main_page]
+    def __init__(self, main_window):
+        self.main_windows = [main_window]
+        self.windows = [main_window]
         self._adj_list = {}
         self._visited = {}
     
-    def add_main_page(self, page):
-        if self.add_page(self, page):
-            self.main_pages.append(page)
+    def add_main_window(self, window):
+        if self.add_window(window):
+            self.main_windows.append(window)
             return True
         return False
 
-    def add_page(self, page):
-        if self._is_new_page(page):
-            self.pages.append(page)
+    def add_window(self, window):
+        if self._is_new_window(window):
+            self.windows.append(window)
             return True
         return False
     
-    def add_edge(self, src_page, tgt_page, events):
-        self.add_page(src_page)
-        self.add_page(tgt_page)
-        if src_page not in self._adj_list:
-            self._adj_list[src_page] = {tgt_page: [events]}
+    def add_edge(self, src_window, tgt_window, events):
+        self.add_window(src_window)
+        self.add_window(tgt_window)
+        if src_window not in self._adj_list:
+            self._adj_list[src_window] = {tgt_window: [events]}
         else:
-            if tgt_page not in self._adj_list[src_page]:
-                self._adj_list[src_page][tgt_page] = [events]
+            if tgt_window not in self._adj_list[src_window]:
+                self._adj_list[src_window][tgt_window] = [events]
             else:
-                self._adj_list[src_page][tgt_page].append(events)
+                self._adj_list[src_window][tgt_window].append(events)
     
-    def _is_new_page(self, new_page):
-        for page in self.pages:
-            if page._is_same(new_page):
+    def _is_new_window(self, new_window):
+        for window in self.windows:
+            if window._is_same(new_window):
                 return False
         return True
 

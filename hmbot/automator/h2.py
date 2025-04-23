@@ -110,3 +110,6 @@ class H2(Automator):
 
     def recent(self):
         self._driver.swipe(0.5, 2710/2720, 0.5, 2400/2720, 500)
+
+    def hop(self, dst_device_name=None, app_name=None):
+        pass

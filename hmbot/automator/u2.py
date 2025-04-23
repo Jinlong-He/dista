@@ -1,10 +1,11 @@
 from .automator import Automator
 from loguru import logger
-from ..vht import VHTParser, VHT
+from ..vht import VHTParser, VHT, VHTNode
 from ..proto import SwipeDirection, DisplayInfo, DisplayRotation, SystemKey
 from ..app.app import App
 import uuid, os, shutil
 import uiautomator2
+import time
 
 class U2(Automator):
     def __init__(self, device):
@@ -48,37 +49,36 @@ class U2(Automator):
     def long_click(self, x, y):
         return self._driver.long_click(x, y)
 
-    def drag(self, x1, y1, x2, y2, speed):
-        if x1 < 1 and y1 < 1 and x2 < 1 and y2 < 1:
-            self.display_info(refresh=True)
-            width = self._display_info.width
-            height = self._display_info.height
-            # print(x1*width, y1*height, x2*width, y2*height, speed)
-            duration = speed/4000
-            return self._driver.drag(x1*width, y1*height, x2*width, y2*height, duration)
-        else:
-            return self._driver.drag(x1, y1, x2, y2, duration)
+    def drag(self, x1, y1, x2, y2, duration=0.5):
+        self.display_info(refresh=True)
+        width = self._display_info.width
+        height = self._display_info.height
+        if x1 < 1 and y1 < 1:
+            x1 = x1*width
+            y1 = y1*height
+        if x2 < 1 and y2 < 1:
+            x2 = x2*width
+            y2 = y2*height
+        return self._driver.drag(x1, y1, x2, y2, duration)
 
-    def swipe(self, x1, y1, x2, y2, speed):
+    def swipe(self, x1, y1, x2, y2, duration=0.5):
         if x1 < 1 and y1 < 1 and x2 < 1 and y2 < 1:
             self.display_info(refresh=True)
             width = self._display_info.width
             height = self._display_info.height
-            duration = speed/4000
             return self._driver.swipe(x1 * width, y1 * height, x2 * width, y2 * height, duration)
         else:
             return self._driver.swipe(x1, y1, x2, y2, duration)
 
     def swipe_ext(self, direction, scale=0.4):
-        #to check
         if direction == SwipeDirection.LEFT :
-            self.drag(0.5, 0.5, 0.5-scale, 0.5)
+            self.swipe(0.5, 0.5, 0.5-scale, 0.5)
         elif direction == SwipeDirection.RIGHT :
-            self.drag(0.5, 0.5, 0.5+scale, 0.5)
+            self.swipe(0.5, 0.5, 0.5+scale, 0.5)
         elif direction == SwipeDirection.UP :
-            self.drag(0.5, 0.5, 0.5, 0.5-scale)
+            self.swipe(0.5, 0.5, 0.5, 0.5-scale)
         elif direction == SwipeDirection.DOWN :
-            self.drag(0.5, 0.5, 0.5, 0.5+scale)
+            self.swipe(0.5, 0.5, 0.5, 0.5+scale)
 
     def input(self, node, text):
         id = node.attribute['id']
@@ -123,3 +123,32 @@ class U2(Automator):
 
     def _current(self):
         return self._driver.app_current()
+
+    def hop(self, dst_device_name=None, app_name=None):
+        if not dst_device_name:
+            return False
+        self.recent()
+        time.sleep(1)
+        self.swipe_ext('left')
+        time.sleep(1)
+
+        swipe_time = 0
+        if app_name:
+            while True:
+                if swipe_time > 10:
+                    return False
+                vht = self.dump_hierarchy(device=self)
+                cnode = vht.__call__(text=app_name)
+                if len(cnode):
+                    break
+                self.swipe_ext('right')
+                time.sleep(1)
+                swipe_time += 1
+
+        vht = self.dump_hierarchy(device=self)
+        dnode = (vht.__call__(text=dst_device_name))[0]
+        [dx, dy] = dnode.attribute.get('center')
+        time.sleep(1)
+        self.drag(0.5, 0.5, dx, dy, 1.0)
+        print(f'hop: {app_name} to {dst_device_name}')
+        return True
