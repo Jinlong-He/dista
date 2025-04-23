@@ -190,6 +190,7 @@ class VHTParser(object):
                            type = extra['type'],
                            id = extra['id'],
                            text = extra['text'],
+                           enabled = extra['enabled'],
                            center = [int((x1 + x2)/2), int((y1 + y2)/2)])
             if 'children' in source:
                 children = source['children']
@@ -220,6 +221,7 @@ class VHTParser(object):
                            type = '',
                            id = '',
                            text = '',
+                           enabled = '',
                            center = [0,0])
         elif source.tag == 'node':
             extra = source.attrib
@@ -247,6 +249,7 @@ class VHTParser(object):
                            type = extra['class'],
                            id = extra['resource-id'],
                            text = extra['text'],
+                           enabled = extra['enabled'],
                            center = [int((x1 + x2)/2), int((y1 + y2)/2)])
         for child in source:
             root.append(VHTParser.__parse_adb_xml(child, device))
