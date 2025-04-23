@@ -138,7 +138,7 @@ class U2(Automator):
                 if swipe_time > 10:
                     return False
                 vht = self.dump_hierarchy(device=self)
-                cnode = vht.__call__(text=app_name)
+                cnode = vht(text=app_name)
                 if len(cnode):
                     break
                 self.swipe_ext('right')
@@ -146,7 +146,7 @@ class U2(Automator):
                 swipe_time += 1
 
         vht = self.dump_hierarchy(device=self)
-        dnode = (vht.__call__(text=dst_device_name))[0]
+        dnode = (vht(text=dst_device_name))[0]
         [dx, dy] = dnode.attribute.get('center')
         time.sleep(1)
         self.drag(0.5, 0.5, dx, dy, 1.0)
