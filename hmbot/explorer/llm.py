@@ -7,7 +7,7 @@ from .explorer import Explorer
 from .prompt import *
 from ..cv import _crop, encode_image
 from ..event import *
-from ..proto import SwipeDirection, ExploreGoal
+from ..proto import SwipeDirection, ExploreGoal, AudioStatus
 
 
 class LLM(Explorer):
@@ -21,10 +21,8 @@ class LLM(Explorer):
         探索
         """
         scenario = self._understand(goal.get('key'), goal.get('value'))
-
         # 所有的已完成的操作，不包括错误的操作
         events_without_error = []
-
         # 所有已完成的操作，包括错误的操作
         all_completed_events = []
         # 反馈信息
@@ -32,10 +30,8 @@ class LLM(Explorer):
         # 界面元素信息
         nodes_before = []
         nodes_description_before = []
-
         steps = 0
-
-        while True and steps < goal.get('max_steps'):
+        while not self._should_terminate(goal=goal) and steps < goal.get('max_steps'):
             # 获取执行操作前的界面
             window_before = self.device.dump_window(refresh=True)
 
@@ -82,6 +78,17 @@ class LLM(Explorer):
             feedback.append("Analysis of the previous operation: " + verify_result["analysis"] + "\n")
             feedback.append("Suggested Next Steps: " + verify_result["next_steps"])
             print("Feedback: ", feedback)
+
+    def _should_terminate(self, **goal):
+        if goal.get('key') == ExploreGoal.TESTCASE:
+            return False
+        if goal.get('key') == ExploreGoal.HARDWARE:
+            if goal.get('value') == 'audio':
+                status = self.device.get_audio_status()
+                if status in [AudioStatus.START, AudioStatus.START_, AudioStatus.DUCK]:
+                    return True
+        return False
+        
 
     def _understand(self, key, value):
         """

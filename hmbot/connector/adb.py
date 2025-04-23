@@ -1,6 +1,6 @@
 from .connector import Connector
 from ..exception import DeviceError, ADBError
-from ..proto import ResourceType
+from ..proto import ResourceType, AudioStatus
 from loguru import logger
 import subprocess
 import re
@@ -138,25 +138,25 @@ class ADB(Connector):
                 continue
             if status == 'paused':
                 if (uid, pid) not in focus_dict:
-                    audio_status = 'PAUSE'
+                    audio_status = AudioStatus.PAUSE
                     continue
                 if focus_dict[(uid, pid)][1] == 'LOSS_TRANSIENT':
-                    audio_status = 'PAUSE*'
+                    audio_status = AudioStatus.PAUSE_
                 else:
-                    audio_status = 'PAUSE'
+                    audio_status = AudioStatus.PAUSE
             if status == 'stopped' or status == 'idle':
-                audio_status = 'STOP'
+                audio_status = AudioStatus.STOP
             if status == 'started':
                 if (uid, pid) not in focus_dict:
                     if started_count > 1:
-                        audio_status = 'START*'
+                        audio_status = AudioStatus.START_
                     else:
-                        audio_status = 'START'
+                        audio_status = AudioStatus.START
                     continue
                 if focus_dict[(uid, pid)][1] == 'LOSS_TRANSIENT_CAN_DUCK':
-                    audio_status = 'DUCK'
+                    audio_status = AudioStatus.DUCK
                 else:
-                    audio_status = 'START'
+                    audio_status = AudioStatus.START
         return audio_status
 
     def get_camera_status(self):

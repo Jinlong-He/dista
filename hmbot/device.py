@@ -120,3 +120,6 @@ class Device(object):
     def execute(self, events):
         for event in events:
             event.execute()
+
+    def get_audio_status(self):
+        return self.connector.get_audio_status()
