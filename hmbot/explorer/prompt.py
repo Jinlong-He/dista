@@ -49,55 +49,233 @@ first_window_understanding_prompt = """
 Analyze the provided screenshot of a mobile application interface and determine its category.
 
 ## Categories
-- Media/Entertainment
-- Navigation/Maps
-- Communication/Social
-- Productivity/Tools
-- Shopping/E-commerce
-- Gaming
-- Education/Learning
-- Health/Fitness
-- Finance/Banking
-- News/Information
+- Navigation
+- Music Player
+- Video Player
+- Social Media
 - Other
 
 ## Output Format
 Return ONLY the category name as a single string, without any explanations or additional text.
 
 Example response:
-"Navigation/Maps"
+"Navigation"
+"Music Player"
 """
 
-audio_understanding_prompt = """
-## Role
-You are an AI assistant specialized in mobile application testing and hardware interaction.
+navigation_audio_prompt = """
+## Task Scenario: Navigation Application Testing
+You are testing a navigation application. Your primary goal is to complete a navigation task by successfully initiating the navigation process.
 
-## Application Category
-The application you are testing has been identified as: **{app_category}**
+## Background
+Navigation applications provide route guidance from the current location to a destination. The core functionality involves searching for a destination and starting the navigation process.
 
-## Task
-Your primary objective is to explore this **{app_category}** application to find and activate **any** feature that produces sound output through the device's speaker. **You MUST prioritize the Primary Strategy defined below based on the application category.**
+## Testing Objective
+Successfully start the navigation process in the application. This requires completing the following steps:
 
-## Exploration Strategy (Prioritized based on Category)
-1.  **Primary Strategy (Based on Category) - FOLLOW THIS FIRST**:
-    *   If **Navigation/Maps**: Your main goal is to initiate route guidance to trigger navigation voice prompts. Search for a destination and start navigation.
-    *   If **Media/Entertainment (Music)**: Your main goal is to find and play a music track. Look for libraries, playlists, or search functions for music, then press play.
-    *   If **Media/Entertainment (Video)**: Your main goal is to find and play a video. Look for video libraries, channels, or search functions for videos, then press play.
-    *   If **Gaming**: Start gameplay or interact with menus/buttons known to produce sound effects or background music.
-    *   If **Communication/Social**: Try playing a voice message, initiating a call (if safe in a test environment), or playing media shared within the app.
-    *   If **Browser**: Your main goal is to use the browser's search functionality to find and play an audio file. Search for terms like "test audio file", "sample music mp3", or "play sound online" and attempt to play any resulting audio content directly in the browser.
-    *   If **Other/Uncertain** or any other category not listed above: Proceed to the general exploration guidance below. Use your judgment to find potential sound sources based on the app's visible features.
+1. Find a search bar or destination input field in the application interface
+2. Enter a common destination (such as "airport", "train station", or "city center")
+3. Select an appropriate destination from the search results
+4. Click the start navigation or route planning button
+5. Confirm any prompts or dialogs to begin navigation
 
-2.  **General Exploration Guidance (Use ONLY if Primary Strategy Fails or Category is 'Other')**:
-    *   Analyze the app's main screen and visible UI elements for obvious sound-related icons (speaker, play button, volume controls).
-    *   Explore menus and settings for sound options, notification sounds, or media playback settings.
-    *   Look for tutorials, help sections, or sample content that might include audio.
+## Success Criteria
+The test is considered successful as soon as the navigation process begins. This is typically indicated by:
+- The application displaying a route on the map
+- The interface changing to navigation mode
+- Navigation controls becoming visible
 
-3.  **Fallback Search Strategy (Use ONLY if both Primary and General Strategies Fail)**:
-    *   Use the app's internal search function (if available). Search for terms like "music," "video," "sound," "audio," "test," "sample," "play," "speaker."
-    *   Attempt to interact with any relevant search results found.
+You do not need to wait for or confirm voice guidance - simply initiating the navigation process is sufficient to consider the test successful.
+"""
 
-Your ultimate goal is to successfully trigger **any audible sound** from the application via the speaker. **Strictly adhere to the prioritized strategy order.**
+music_player_audio_prompt = """
+## Task Scenario: Music Player Application Testing
+You are testing a music player application. Your primary goal is to successfully play music through the device's speaker.
+
+## Background
+Music player applications are designed to play audio files. The core functionality involves browsing music libraries, selecting tracks, and playing audio content.
+
+## Testing Objective
+Successfully play a music track in the application. This requires completing the following steps:
+
+1. Look for and click any prominent play button on the main screen - if available, this is the quickest way to start playback
+2. If no direct play button is available, navigate through the music library or collection interface
+3. Look for music categories such as songs, albums, artists, or playlists
+4. Select any available music track, album, or playlist
+5. Activate the play function to start audio playback
+6. Verify playback status: Check if the play button has changed to a pause button and if the playback progress is moving
+
+## Success Criteria
+The test is considered successful as soon as music playback begins. This is typically indicated by:
+- A track beginning to play with visible playback controls
+- Play button changing to pause button (confirm the play button has been clicked and changed to pause state)
+- Playback progress indicators becoming active (check if the progress bar is moving)
+- Track information being displayed
+- You may hear audio playing through the device speaker
+
+You do not need to evaluate the audio quality or complete playback of the entire track - simply initiating music playback is sufficient to consider the test successful. However, please ensure that playback has actually started, not just that a track has been selected but not yet playing.
+"""
+
+video_player_audio_prompt = """
+## Task Scenario: Video Player Application Testing
+You are testing a video player application. Your primary goal is to successfully play a video that produces sound through the device's speaker.
+
+## Background
+Video player applications are designed to play video files with accompanying audio. The core functionality involves browsing video libraries, selecting videos, and playing content.
+
+## Testing Objective
+Successfully play a video with audio in the application. This requires completing the following steps:
+
+1. Look for and click any prominent play button on the main screen - if available, this is the quickest way to start playback
+2. If no direct play button is available, navigate through the video library or collection interface
+3. Look for video categories such as recent, popular, recommended, etc.
+4. Select any available video content
+5. Activate the play function to start video playback
+
+## Success Criteria
+The test is considered successful as soon as video playback begins. This is typically indicated by:
+- Video content starting to play with visible playback controls
+- Play button changing to pause button
+- Playback progress indicators becoming active
+- Video information being displayed
+
+You do not need to evaluate the video quality or complete playback of the entire video - simply initiating video playback is sufficient to consider the test successful.
+"""
+
+social_media_audio_prompt = """
+## Task Scenario: Social Media Application Testing
+You are testing a social media application. Your primary goal is to find and activate any feature that produces sound through the device's speaker.
+
+## Background
+Social media applications typically offer multiple features that may produce sound, such as video playback, voice messages, video calls, and more.
+
+## Testing Objective
+Find and activate any sound-producing feature in the social media application. You can try several approaches:
+
+1. Look for and play any video content - videos on many social platforms will play audio
+2. Look for voice messages or voice memos features and play any available voice content
+3. Try initiating a voice or video call (if supported by the app and safe in a test environment)
+4. Look for and tap on any content or buttons with sound icons
+5. Check notification sound settings or other system features that might trigger sounds
+
+## Success Criteria
+The test is considered successful when the application produces any audible sound through the device's speaker. This could come from:
+- Video or audio content playback
+- Call ringtones or connection sounds
+- Notification or alert sounds
+- Any other in-app audio feature
+
+As long as the application produces any sound, regardless of the source, the test is considered successfully completed.
+"""
+
+other_audio_prompt = """
+## Task Scenario: General Application Sound Testing
+You are testing an application that doesn't clearly fall into common categories. Your primary goal is to explore the application and find any feature that produces sound through the device's speaker.
+
+## Background
+Various applications may integrate sound features in different ways, including notifications, feedback sounds, media playback, or interactive sound effects.
+
+## Testing Objective
+Systematically explore the application to find and activate any sound features. Try the following approaches in order of priority:
+
+1. Look for and tap any obvious media controls (play buttons, sound icons, speaker symbols, etc.)
+2. Browse through the main functional areas of the app, looking for sections that might contain audio content
+3. Check settings menus for sound, notification, or audio-related options
+4. Try completing main tasks or interactions in the app, noting if there are feedback sounds
+5. If the app has search functionality, search for terms like "sound", "music", "audio", "video", etc.
+6. Look for and use any tutorials, help, or example content, which often contain audio instructions
+
+## Success Criteria
+The test is considered successful when the application produces any audible sound through the device's speaker. Success indicators include:
+- Any audio content playing
+- Interface interaction sounds
+- Notification or alert sounds
+- System feedback sounds
+
+The primary goal of exploring the application is to discover any sound functionality, regardless of its form. As long as the application produces any sound, the test is considered successfully completed.
+"""
+
+camera_prompt = """
+## Task Scenario: Camera Access Testing
+You are testing an application's camera access functionality. Your primary goal is to find and activate features that launch the device's camera.
+
+## Background
+Many applications provide access to the device's camera for taking photos, video calls, scanning QR codes, or augmented reality experiences. These features are typically accessed through specific buttons, menu options, or interaction flows.
+
+## Testing Objective
+Find and successfully launch the camera functionality within the application. Try the following approaches in order of priority:
+
+1. Look for and tap any obvious camera icons, photo buttons, or video icons
+2. Explore the main interface of the app, looking for areas that might relate to image/video capture
+3. Check bottom navigation bars, floating action buttons, or top-right menu options for camera features
+4. Look for camera-related functionality in profile, messaging, posting, or content creation areas
+5. If the app has search functionality, try searching for terms like "camera", "photo", "scan", etc.
+6. Check application settings for media, permissions, or content creation options
+
+## Success Criteria
+The test is considered successful when the application successfully launches the device's camera. This is typically indicated by:
+- Camera preview screen appearing, showing a live feed
+- System permission request for camera access appearing
+- Photo/video capture controls becoming visible
+- Interface transition to a camera capture mode
+
+Once the camera is successfully launched (either front or rear camera), the test is considered complete. You do not need to actually capture photos or videos - just confirm that the camera has been activated.
+"""
+
+micro_prompt = """
+## Task Scenario: Microphone Access Testing
+You are testing an application's microphone access functionality. Your primary goal is to find and activate features that utilize the device's microphone.
+
+## Background
+Many applications provide features that require microphone access for voice recording, voice commands, voice calls, or audio input. These features are typically accessed through specific buttons, menu options, or interaction flows.
+
+## Testing Objective
+Find and successfully activate the microphone functionality within the application. Try the following approaches in order of priority:
+
+1. Look for and tap any obvious microphone icons, voice recording buttons, or audio input indicators
+2. Explore voice messaging or voice note features in communication apps
+3. Check for voice search functionality, often indicated by microphone icons in search bars
+4. Look for voice call or video call features in communication apps
+5. Explore voice command or voice assistant features in the application
+6. Check application settings for audio, microphone, or voice-related options
+7. If the app has search functionality, try searching for terms like "voice", "record", "microphone", etc.
+
+## Success Criteria
+The test is considered successful when the application successfully activates the device's microphone. This is typically indicated by:
+- Microphone permission request dialog appearing
+- Voice recording or audio input interface becoming visible
+- Audio level indicators or waveforms appearing
+- Interface transition to a recording or listening mode
+- Confirmation that the app is listening or recording
+
+Once the microphone is successfully activated, the test is considered complete. You do not need to complete a full recording or voice interaction - just confirm that the microphone has been activated.
+"""
+
+keyboard_prompt = """
+## Task Scenario: Keyboard Input Testing
+You are testing an application's text input functionality. Your primary goal is to find and activate features that trigger the device's keyboard.
+
+## Background
+Most applications include text input fields for searching, messaging, form filling, or content creation. These input fields typically activate the device's keyboard when tapped.
+
+## Testing Objective
+Find and successfully trigger the keyboard within the application. Try the following approaches in order of priority:
+
+1. Look for and tap any obvious text input fields, search bars, or message composition areas
+2. Explore content creation features such as post creation, comment sections, or note-taking areas
+3. Check for form fields in profile settings, account information, or registration areas
+4. Look for search functionality in any section of the application
+5. Explore messaging or communication features that would require text input
+6. If the app has settings or configuration options, look for customizable fields that might accept text input
+
+## Success Criteria
+The test is considered successful when the application successfully triggers the device's keyboard. This is typically indicated by:
+- On-screen keyboard appearing at the bottom of the screen
+- Text cursor blinking in an input field
+- Text input field becoming active or highlighted
+- Placeholder text in the input field disappearing when tapped
+
+Once the keyboard is successfully displayed, the test is considered complete. You do not need to complete text entry or form submission - just confirm that the keyboard has been activated.
 """
 
 
@@ -173,7 +351,6 @@ You can only choose from the following types of actions:
 3. "swipe": Specify the direction ("up", "down", "left", "right")
 4. "back": Press the back button
 5. "home": Return to the home screen (close the application)
-6. "finish": If the test scenario is finished
 
 ## Response Format
 Return your decision strictly in the following JSON format, without any explanatory language:
@@ -183,12 +360,12 @@ Return your decision strictly in the following JSON format, without any explanat
 {{"event_type": "back"}}
 {{"event_type": "home"}}
 """
-
+# 6. "finish": If the test scenario is finished
 # {{"event_type": "finish"}}
 
 
 verify_prompt = """
-## Test Scenario: The original test scenario comes from similar applications on different platforms and needs to be adapted to the current target platform and application. There may be differences in interfaces and interaction methods between them.
+## Test Scenario: 
 {}
 
 ## Operations Performed
@@ -232,7 +409,7 @@ Please carefully analyze the screenshots and UI element changes before and after
 Please return the analysis results strictly in the following format:
 {{
     "validity": true/false, // Whether the operation is valid (successfully executed, correct UI response, matches functional intent, and leads to reasonable state change)
-    "goal_completion": true/false, // Whether the test scenario's objective has been fully achieved according to the operations performed
+    "goal_completion": true/false, // Whether the test scenario's objective has been fully achieved according to the current interface elements and operations performed
     "analysis": "Detailed analysis of the operation's effectiveness, interface changes, and progress toward the test goal",
     "next_steps": "Suggested next steps based on the current state, including correction if the current path is incorrect"
 }}
