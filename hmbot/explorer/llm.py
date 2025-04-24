@@ -20,7 +20,8 @@ class LLM(Explorer):
         """
         探索
         """
-        scenario = self._understand(goal.get('key'), goal.get('value'))
+        first_window = self.device.dump_window(refresh=True)
+        scenario = self._understand(goal.get('key'), goal.get('value'), first_window)
         # 所有的已完成的操作，不包括错误的操作
         events_without_error = []
         # 所有已完成的操作，包括错误的操作
@@ -86,11 +87,12 @@ class LLM(Explorer):
             if goal.get('value') == ResourceType.AUDIO:
                 status = self.device.get_audio_status()
                 if status in [AudioStatus.START, AudioStatus.START_, AudioStatus.DUCK]:
+                    print("Audio is playing, terminating exploration.")
                     return True
         return False
         
 
-    def _understand(self, key, value):
+    def _understand(self, key, value, first_window=None):
         """
         理解 value 构建 scenario
         """
@@ -98,41 +100,63 @@ class LLM(Explorer):
         understanding_prompt = ''
         if key == ExploreGoal.TESTCASE:
             understanding_prompt = test_understanding_prompt.format(value)
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a UI Testing Assistant.",
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": understanding_prompt},
+                        ],
+                    },
+                ],
+                stream=False,
+            )
+            scenario = response.choices[0].message.content
+            print(scenario)
+            return scenario
         elif key == ExploreGoal.HARDWARE:
-            # understanding_prompt = hardware_understanding_prompt.format(value)
-            return hardware_understanding_prompt
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a UI Testing Assistant.",
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": understanding_prompt},
-                    ],
-                },
-            ],
-            stream=False,
-        )
-        scenario = response.choices[0].message.content
-        print(scenario)
-        return scenario
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a UI Testing Assistant.", 
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": first_window_understanding_prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(first_window.img)}"}}
+                        ],
+                    },
+                ],
+                stream=False,
+            )
+            app_kind = response.choices[0].message.content
+            scenario = ''
+            if value == ResourceType.AUDIO:
+                scenario = audio_understanding_prompt.format(app_category=app_kind)
+            print(scenario)
+            return scenario
+
 
     def _nodes_detect(self, window):
         """
         检测与描述相符合的控件
         """
         print("-----------------------控件检测-----------------------")
-        nodes = window(clickable='true')
+        nodes = window(clickable='true', enabled='true')
         screenshot = window.img
 
         images = []
         for node in nodes:
             images.append(_crop(screenshot, node.attribute['bounds']))
-            print(node)
+            # print(node)
 
         # 显示可点击控件
         # for image in images:
@@ -283,7 +307,7 @@ class LLM(Explorer):
         event_type = event_json.get("event_type")
         if event_type == "click":
             element_id = event_json.get("element_id")
-            if element_id is not None and 1 <= element_id <= len(nodes_description):
+            if element_id is not None and 0 <= element_id <= len(nodes_description)-1:
                 node = nodes[element_id]
                 # 构建操作描述，易于大模型理解
                 event_explanation = f"Click widget{element_id}: {nodes_description[element_id]['description']} at ({node.attribute['center']})"
@@ -293,7 +317,7 @@ class LLM(Explorer):
         elif event_type == "input":
             element_id = event_json.get("element_id")
             text = event_json.get("text", "")
-            if element_id is not None and 1 <= element_id <= len(nodes_description):
+            if element_id is not None and 0 <= element_id <= len(nodes_description)-1:
                 node = nodes[element_id]
                 event_explanation = f"Input text '{text}' into widget{element_id}: {nodes_description[element_id]['description']}"
                 return InputEvent(node, text), event_explanation

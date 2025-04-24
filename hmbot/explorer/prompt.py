@@ -44,32 +44,60 @@ Example answers:
 ```
 """
 
-hardware_understanding_prompt = """
-You are an AI assistant specializing in mobile application testing and hardware interaction analysis. Your task is to:
+first_window_understanding_prompt = """
+## Task
+Analyze the provided screenshot of a mobile application interface and determine its category.
 
-1. Identify the audio playback module of the currently running application by:
-   a. Analyzing the application's core functionalities
-   b. Mapping common use cases to speaker activation patterns
-   c. Cross-referencing with known application archetypes
+## Categories
+- Media/Entertainment
+- Navigation/Maps
+- Communication/Social
+- Productivity/Tools
+- Shopping/E-commerce
+- Gaming
+- Education/Learning
+- Health/Fitness
+- Finance/Banking
+- News/Information
+- Other
 
-2. For recognized application types:
-   - Music apps (e.g. QQ Music): Trigger speaker through media playback controls
-   - Navigation apps (e.g. Amap): Activate via route guidance initialization
-   - Communication apps: Use voice message/call features
-   - Gaming apps: Initiate in-game sound effects
-   - Browser/Generic apps: Suggest searching and playing media files
+## Output Format
+Return ONLY the category name as a single string, without any explanations or additional text.
 
-3. For unclassified applications:
-   a. Determine primary audio interaction points
-   b. Identify UI elements related to sound output
-   c. Suggest test sequences based on usage patterns
-   d. Execute universal media search (music/video) as fallback strategy
+Example response:
+"Navigation/Maps"
+"""
 
-4. Fallback protocol:
-   - If no explicit audio features found:
-     a. Search for "test audio" or "sample music" in-app
-     b. Attempt to play discovered media files
-     c. Verify speaker activation through waveform analysis
+audio_understanding_prompt = """
+## Role
+You are an AI assistant specialized in mobile application testing and hardware interaction.
+
+## Application Category
+The application you are testing has been identified as: **{app_category}**
+
+## Task
+Your primary objective is to explore this **{app_category}** application to find and activate **any** feature that produces sound output through the device's speaker. **You MUST prioritize the Primary Strategy defined below based on the application category.**
+
+## Exploration Strategy (Prioritized based on Category)
+1.  **Primary Strategy (Based on Category) - FOLLOW THIS FIRST**:
+    *   If **Navigation/Maps**: Your main goal is to initiate route guidance to trigger navigation voice prompts. Search for a destination and start navigation.
+    *   If **Media/Entertainment (Music)**: Your main goal is to find and play a music track. Look for libraries, playlists, or search functions for music, then press play.
+    *   If **Media/Entertainment (Video)**: Your main goal is to find and play a video. Look for video libraries, channels, or search functions for videos, then press play.
+    *   If **Gaming**: Start gameplay or interact with menus/buttons known to produce sound effects or background music.
+    *   If **Communication/Social**: Try playing a voice message, initiating a call (if safe in a test environment), or playing media shared within the app.
+    *   If **Browser**: Your main goal is to use the browser's search functionality to find and play an audio file. Search for terms like "test audio file", "sample music mp3", or "play sound online" and attempt to play any resulting audio content directly in the browser.
+    *   If **Other/Uncertain** or any other category not listed above: Proceed to the general exploration guidance below. Use your judgment to find potential sound sources based on the app's visible features.
+
+2.  **General Exploration Guidance (Use ONLY if Primary Strategy Fails or Category is 'Other')**:
+    *   Analyze the app's main screen and visible UI elements for obvious sound-related icons (speaker, play button, volume controls).
+    *   Explore menus and settings for sound options, notification sounds, or media playback settings.
+    *   Look for tutorials, help sections, or sample content that might include audio.
+
+3.  **Fallback Search Strategy (Use ONLY if both Primary and General Strategies Fail)**:
+    *   Use the app's internal search function (if available). Search for terms like "music," "video," "sound," "audio," "test," "sample," "play," "speaker."
+    *   Attempt to interact with any relevant search results found.
+
+Your ultimate goal is to successfully trigger **any audible sound** from the application via the speaker. **Strictly adhere to the prioritized strategy order.**
 """
 
 

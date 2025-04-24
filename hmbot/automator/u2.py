@@ -83,10 +83,10 @@ class U2(Automator):
     def input(self, node, text):
         u2_nodes = []
         if len(node._compressed) == 0:
-            u2_nodes = self.identify(node=node, type='android.widget.EditText')
+            u2_nodes.append(self.identify(node=node, type='android.widget.EditText', enabled="true", focused="true"))
         else:
             for child in node._compressed:
-                u2_nodes.extend(self.identify(node=child, type='android.widget.EditText'))
+                u2_nodes.extend(self.identify(node=child, type='android.widget.EditText', enabled="true", focused="true"))
         for u2_node in u2_nodes:
             u2_node.set_text(text)
 
@@ -164,4 +164,8 @@ class U2(Automator):
         text = node.attribute['text']
         if 'type' in kwds:
             type = kwds['type']
-        return self._driver(resourceId=id, className=type, text=text)
+        if 'enabled' in kwds:
+            enabled = kwds['enabled']
+        if 'focused' in kwds:
+            focused = kwds['focused']
+        return self._driver(resourceId=id, className=type, text=text, enabled=enabled, focused=focused)
