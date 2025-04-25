@@ -23,6 +23,7 @@ class Window(object):
 
     def _is_same(self, new_window):
         # todo
+        return False
         if isinstance(new_window, Window):
             vht_sim = self.vht_similarity(new_window)
             img_sim = self.img_similarity(new_window)
