@@ -1,13 +1,14 @@
 from .page import Page
-from .vht import VHT
+from .vht import VHT, VHTParser
+from .cv import write
 
 class Window(object):
-    def __init__(self, vht, img):
+    def __init__(self, vht, img, rsc, ability):
         self.vht = vht
         self.img = img
-        self.bundle = ''
-        self.page = ''
-        self.resource = {}
+        self.rsc = rsc
+        self.ability = ability
+        # self.bundle = ''
         # roots = vht.roots()
         # self._pages = []
         # for root in roots:
@@ -23,6 +24,19 @@ class Window(object):
         for page in self._pages:
             if page.bundle == app.bundle:
                 return page
+    
+    def _dump(self, id):
+        vht_file = str(id) + '.json'
+        img_file = str(id) + '.png'
+        VHTParser.dump(self.vht, vht_file)
+        write(img_file, self.img)
+        return (vht_file, img_file)
+    
+    def _dict(self, vht_file='', img_file=''):
+        return {'vht': vht_file,
+                'img': img_file,
+                'rsc': self.rsc,
+                'ability': self.ability}
 
     def _is_same(self, new_window):
         # todo

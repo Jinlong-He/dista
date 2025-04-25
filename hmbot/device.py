@@ -100,7 +100,9 @@ class Device(object):
         if self.window == None or refresh:
             vht = self.dump_hierarchy(device=device)
             img = self.screenshot()
-            self.window = Window(vht=vht, img=img)
+            rsc = self.get_resource_status()
+            ability = self.current_ability().get('ability')
+            self.window = Window(vht=vht, img=img, rsc=rsc, ability=ability)
         return self.window
 
     def dump_page(self, split=False, app=None):
@@ -123,3 +125,6 @@ class Device(object):
 
     def get_audio_status(self, bundle=None):
         return self.connector.get_audio_status(bundle)
+
+    def get_resource_status(self, bundle=None):
+        return self.connector.get_resource_status(bundle)

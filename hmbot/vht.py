@@ -12,7 +12,7 @@ class VHT(object):
             self._compress(self._root)
 
     def __str__(self):
-        return str(self._root._dict())
+        return str(self._root._json_dict())
     
     def __call__(self, **kwds):
         return self._root(**kwds)
@@ -92,8 +92,8 @@ class VHTNode(object):
         if not isinstance(node, VHTNode):
             raise TypeError('expected a VHTNode, not %s' % type(node).__name__)
 
-    def _dict(self):
-        children_dict = [child._dict() for child in self._children]
+    def _json_dict(self):
+        children_dict = [child._json_dict() for child in self._children]
         return {
             'attributes': self._json(),
             'children': children_dict
@@ -157,7 +157,7 @@ class VHTParser(object):
     @classmethod
     def dump(cls, vht, file, indent=2):
         with open(file, 'w') as write_file:
-            json.dump(vht._root._dict(), write_file, indent=indent, ensure_ascii=False)
+            json.dump(vht._root._json_dict(), write_file, indent=indent, ensure_ascii=False)
     
     @classmethod
     def _parse_hdc_json(cls, source, device):

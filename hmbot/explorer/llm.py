@@ -35,7 +35,7 @@ class LLM(Explorer):
         steps = 0
 
         # Termination condition
-        terminated = self._should_terminate(goal=goal)
+        terminated = self._should_terminate(window=first_window, goal=goal)
 
         while not terminated and steps < goal.get('max_steps'):
             # Get interface before operation execution
@@ -52,7 +52,7 @@ class LLM(Explorer):
             # Execute operation
             logger.debug("-----------------------Executing LLM-decided operation-----------------------")
             event.execute()
-            terminated = self._should_terminate(goal=goal)
+            terminated = self._should_terminate(window=window_before, goal=goal)
             logger.debug(event_explanation)
             all_completed_events.append(event_explanation)
             steps += 1
@@ -86,12 +86,13 @@ class LLM(Explorer):
             feedback.append("Suggested Next Steps: " + verify_result["next_steps"])
             logger.debug(f"Feedback: {feedback}")
 
-    def _should_terminate(self, goal):
+    def _should_terminate(self, window, goal):
         if goal.get('key') == ExploreGoal.TESTCASE:
             return False
         if goal.get('key') == ExploreGoal.HARDWARE:
             if goal.get('value') == ResourceType.AUDIO:
-                status = self.device.get_audio_status()
+                # status = self.device.get_audio_status()
+                status = window.rsc.get(ResourceType.AUDIO)
                 if status in [AudioStatus.START, AudioStatus.START_, AudioStatus.DUCK]:
                     logger.debug("Audio is playing, terminating exploration.")
                     return True

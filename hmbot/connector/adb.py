@@ -172,6 +172,7 @@ class ADB(Connector):
         return audio_status
 
     def get_camera_status(self):
+        return 'default'
         pass
 
     def get_micro_status(self, bundle=None):
@@ -193,4 +194,5 @@ class ADB(Connector):
 
 
     def get_keyboard_status(self):
+        return 'default'
         pass
