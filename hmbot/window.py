@@ -5,6 +5,9 @@ class Window(object):
     def __init__(self, vht, img):
         self.vht = vht
         self.img = img
+        self.bundle = ''
+        self.page = ''
+        self.resource = {}
         # roots = vht.roots()
         # self._pages = []
         # for root in roots:
