@@ -2,9 +2,9 @@ from .window import Window
 from .event import Event
 
 class WTG(object):
-    def __init__(self, main_window):
-        self.main_windows = [main_window]
-        self.windows = [main_window]
+    def __init__(self):
+        self.main_windows = []
+        self.windows = []
         self._adj_list = {}
         self._visited = {}
     
@@ -38,12 +38,12 @@ class WTG(object):
         return True
 
 
-class PTGParser(object):
+class WTGParser(object):
     def parse(cls, file):
-        ptg = PTG()
-        return ptg
+        wtg = WTG()
+        return wtg
 
     @classmethod
-    def dump(cls, ptg, file, indent=2):
+    def dump(cls, wtg, file, indent=2):
         pass
 
