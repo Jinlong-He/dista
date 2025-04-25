@@ -1,6 +1,6 @@
 from .connector import Connector
 from ..exception import DeviceError, ADBError
-from ..proto import ResourceType, AudioStatus
+from ..proto import ResourceType, AudioStatus, MicroStatus
 from loguru import logger
 import subprocess
 import re
@@ -80,8 +80,9 @@ class ADB(Connector):
                     }
         return {}
 
-    def get_uid(self):
-        bundle = self.current_ability().get('bundle')
+    def get_uid(self, bundle=None):
+        if not bundle:
+            bundle = self.current_ability().get('bundle')
         process_lines = self.shell_grep("ps", bundle).splitlines()
         if len(process_lines) > 0:
             usr_name = process_lines[0].split()[0]
@@ -90,15 +91,20 @@ class ADB(Connector):
         else:
             return
 
-    def get_resource_status(self):
+    def get_resource_status(self, bundle=None):
+        if not bundle:
+            bundle = self.current_ability().get('bundle')
         return {
-            ResourceType.AUDIO: self.get_audio_status(),
+            ResourceType.AUDIO: self.get_audio_status(bundle),
             ResourceType.CAMERA: self.get_camera_status(),
-            ResourceType.MICRO: self.get_micro_status(),
+            ResourceType.MICRO: self.get_micro_status(bundle),
             ResourceType.KEYBOARD: self.get_keyboard_status()
         }
 
-    def get_audio_status(self):
+    def get_audio_status(self, bundle=None):
+        if not bundle:
+            bundle = self.current_ability().get('bundle')
+
         audio_lines = self.shell_grep("dumpsys audio", "AudioPlaybackConfiguration").splitlines()
         audio_line_re = re.compile(".*u/pid:(.*)/(.*) .*state:(.*) attr.*")
         audio_status_dict = {}
@@ -109,13 +115,18 @@ class ADB(Connector):
                 uid = m.group(1)
                 pid = m.group(2)
                 status = m.group(3)
-                audio_status_dict[(uid, pid)] = status
-                if status == 'started':
-                    started_count += 1
+                if (uid, pid) not in audio_status_dict:
+                    audio_status_dict[(uid, pid)] = status
+                    if status == 'started':
+                        started_count += 1
+                elif status == 'started':
+                    if audio_status_dict[(uid, pid)] != 'started':
+                        started_count += 1
+                    audio_status_dict[(uid, pid)] = status
+
         req_focus_lines = self.shell_grep("dumpsys audio", "requestAudioFocus").splitlines()
         req_focus_line_re = re.compile(".*uid/pid (\d*)/(\d*) .*clientId=(.*) callingPack=.*")
         client_dict = {}
-        started_count = 0
         for req_focus_line in req_focus_lines:
             m = req_focus_line_re.match(req_focus_line)
             if m:
@@ -123,6 +134,7 @@ class ADB(Connector):
                 pid = str(m.group(2))
                 client_id = m.group(3)
                 client_dict[client_id] = (uid, pid)
+
         focus_lines = self.shell_grep("dumpsys audio", "source:").splitlines()
         focus_line_re = re.compile(".* pack: (.*) -- client: (.*) -- gain: (.*) -- flags.* loss: (.*) -- notified.*")
         focus_dict = {}
@@ -131,11 +143,22 @@ class ADB(Connector):
             if m:
                 (uid, pid) = client_dict[m.group(2)]
                 focus_dict[(uid, pid)] = (m.group(3), m.group(4))
-        uid_ = self.get_uid()
+
+        uid_ = self.get_uid(bundle)
         audio_status = ''
         for (uid, pid), status in audio_status_dict.items():
             if uid != uid_:
                 continue
+            if status == 'started':
+                if (uid, pid) not in focus_dict:
+                    if started_count > 1:
+                        return AudioStatus.START_
+                    else:
+                        return AudioStatus.START
+                if focus_dict[(uid, pid)][1] == 'LOSS_TRANSIENT_CAN_DUCK':
+                    return AudioStatus.DUCK
+                else:
+                    return AudioStatus.START
             if status == 'paused':
                 if (uid, pid) not in focus_dict:
                     audio_status = AudioStatus.PAUSE
@@ -146,23 +169,15 @@ class ADB(Connector):
                     audio_status = AudioStatus.PAUSE
             if status == 'stopped' or status == 'idle':
                 audio_status = AudioStatus.STOP
-            if status == 'started':
-                if (uid, pid) not in focus_dict:
-                    if started_count > 1:
-                        audio_status = AudioStatus.START_
-                    else:
-                        audio_status = AudioStatus.START
-                    continue
-                if focus_dict[(uid, pid)][1] == 'LOSS_TRANSIENT_CAN_DUCK':
-                    audio_status = AudioStatus.DUCK
-                else:
-                    audio_status = AudioStatus.START
         return audio_status
 
     def get_camera_status(self):
         pass
 
-    def get_micro_status(self, bundle):
+    def get_micro_status(self, bundle=None):
+        if not bundle:
+            bundle = self.current_ability().get('bundle')
+
         mic_infos = self.shell_grep("dumpsys audio", "src:").splitlines()
         status = ''
         silenced = ''
@@ -173,8 +188,8 @@ class ADB(Connector):
                 status = match.group(1)
                 silenced = match.group(2)
         if status in ['stop', 'release'] or 'not' not in silenced:
-            return 'stop'
-        return 'start'
+            return MicroStatus.STOP
+        return MicroStatus.START
 
 
     def get_keyboard_status(self):

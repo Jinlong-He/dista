@@ -104,29 +104,33 @@ class HDC(Connector):
         logger.debug('return: %s' % r)
         return r.splitlines()
 
-    def get_uid(self):
-        app = self.current_ability().get('app')
-        ps_info = self.shell_grep("ps -ef", app).split()
+    def get_uid(self, bundle=None):
+        if not bundle:
+            bundle = self.current_ability().get('bundle')
+        ps_info = self.shell_grep("ps -ef", bundle).split()
         if len(ps_info) > 2:
             return ps_info[0]
 
-    def get_pid(self):
-        app = self.current_ability().get('app')
-        ps_info = self.shell_grep("ps -ef", app).split()
+    def get_pid(self, bundle=None):
+        if not bundle:
+            bundle = self.current_ability().get('bundle')
+        ps_info = self.shell_grep("ps -ef", bundle).split()
         if len(ps_info) > 2:
             return ps_info[1]
 
-    def get_resource_status(self):
+    def get_resource_status(self, bundle=None):
+        if not bundle:
+            bundle = self.current_ability().get('bundle')
         return {
-            ResourceType.AUDIO: self.get_audio_status(),
+            ResourceType.AUDIO: self.get_audio_status(bundle),
             ResourceType.CAMERA: self.get_camera_status(),
-            ResourceType.MICRO: self.get_micro_status(),
+            ResourceType.MICRO: self.get_micro_status(bundle),
             ResourceType.KEYBOARD: self.get_keyboard_status()
         }
 
-    def get_audio_status(self):
-        uid = self.get_uid()
-        pid = self.get_pid()
+    def get_audio_status(self, bundle=None):
+        uid = self.get_uid(bundle)
+        pid = self.get_pid(bundle)
 
         session_id_infos = self.shell_grep("hidumper -s AudioDistributed", "sessionId").splitlines()
         session_id = 0

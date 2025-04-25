@@ -121,5 +121,5 @@ class Device(object):
         for event in events:
             event.execute()
 
-    def get_audio_status(self):
-        return self.connector.get_audio_status()
+    def get_audio_status(self, bundle=None):
+        return self.connector.get_audio_status(bundle)
