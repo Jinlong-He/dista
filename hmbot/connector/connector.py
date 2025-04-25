@@ -59,7 +59,7 @@ class Connector(ABC):
         pass
 
     @abstractmethod
-    def get_resource_status(self):
+    def get_resource_status(self, bundle):
         """
         Run a shell-command and return the resource status of the current app (including audio, camera).
 
@@ -74,7 +74,7 @@ class Connector(ABC):
         pass
 
     @abstractmethod
-    def get_audio_status(self):
+    def get_audio_status(self, bundle):
         """
         Run a shell-command and return the audio status of the current app.
 
