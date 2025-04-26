@@ -9,6 +9,7 @@ from .prompt import *
 from ..cv import _crop, encode_image
 from ..event import *
 from ..proto import SwipeDirection, ExploreGoal, AudioStatus, ResourceType
+from ..wtg import WTG, WTGParser
 
 
 class LLM(Explorer):
@@ -21,6 +22,8 @@ class LLM(Explorer):
         """
         Exploration
         """
+        wtg = WTG()
+
         first_window = self.device.dump_window(refresh=True)
         scenario = self._understand(goal.get('key'), goal.get('value'), first_window)
         # All completed operations, excluding erroneous operations
@@ -36,8 +39,10 @@ class LLM(Explorer):
 
         # Termination condition
         terminated = self._should_terminate(window=first_window, goal=goal)
+        logger.debug("terminated" + str(terminated))
 
         while not terminated and steps < goal.get('max_steps'):
+            logger.debug("terminated" + str(terminated))
             # Get interface before operation execution
             window_before = self.device.dump_window(refresh=True)
 
@@ -46,13 +51,12 @@ class LLM(Explorer):
                 nodes_description_before, nodes_before = self._nodes_detect(window_before)
 
             # Get next operation event, event_explanation converts event to a form easily understood by LLM
-            event, event_explanation = self._get_next_event(scenario, nodes_description_before, nodes_before,
+            events, event_explanation = self._get_next_event(scenario, nodes_description_before, nodes_before,
                                                             window_before, all_completed_events, feedback)
 
             # Execute operation
             logger.debug("-----------------------Executing LLM-decided operation-----------------------")
-            event.execute()
-            terminated = self._should_terminate(window=window_before, goal=goal)
+            self.device.execute(events)
             logger.debug(event_explanation)
             all_completed_events.append(event_explanation)
             steps += 1
@@ -61,8 +65,9 @@ class LLM(Explorer):
             time.sleep(2)
             window_after = self.device.dump_window(refresh=True)
             nodes_description_after, nodes_after = self._nodes_detect(window_after)
+            terminated = self._should_terminate(window=window_after, goal=goal)
 
-            if isinstance(event, KeyEvent) and event.key == SystemKey.BACK:
+            if isinstance(events[0], KeyEvent) and events[0].key == SystemKey.BACK:
                 # Back operation doesn't need verification
                 nodes_description_before, nodes_before = nodes_description_after, nodes_after
                 continue
@@ -70,14 +75,16 @@ class LLM(Explorer):
             # Verify operation result
             verify_result = self._verify_event(scenario, event_explanation, window_before, nodes_description_before,
                                                window_after, nodes_description_after)
+            terminated = self._should_terminate(window=window_after, goal=goal)
 
             # If current operation is valid, add it to the completed operations list
             if verify_result["validity"]:
-                events_without_error.append(event)
+                events_without_error.extend(events)
+                wtg.add_edge(window_before, window_after, events)
 
             # If verification result is complete, end exploration
-            # if verify_result["goal_completion"] or (isinstance(event, KeyEvent) and event.key == SystemKey.HOME):
-            #     break
+            if verify_result["goal_completion"] or (isinstance(events[0], KeyEvent) and events[0].key == SystemKey.HOME):
+                break
 
             nodes_description_before, nodes_before = nodes_description_after, nodes_after
 
@@ -85,6 +92,10 @@ class LLM(Explorer):
             feedback.append("Analysis of the previous operation: " + verify_result["analysis"] + "\n")
             feedback.append("Suggested Next Steps: " + verify_result["next_steps"])
             logger.debug(f"Feedback: {feedback}")
+
+        logger.debug("events_count: " + str(len(events_without_error)))
+        logger.debug("windows_count: " + str(len(wtg.windows)))
+        WTGParser.dump(wtg, 'wtg.json')
 
     def _should_terminate(self, window, goal):
         if goal.get('key') == ExploreGoal.TESTCASE:
@@ -327,41 +338,44 @@ class LLM(Explorer):
             logger.debug(f"Failed to call LLM API: {e}")
             return {"action": "error", "message": str(e)}
 
+        events_list = []
+        event_explanation = ''
+
         # Parse JSON returned by LLM
         event_type = event_json.get("event_type")
         if event_type == "click":
             element_id = event_json.get("element_id")
             if element_id is not None and 0 <= element_id <= len(nodes_description)-1:
                 node = nodes[element_id]
+                events_list.append(ClickEvent(node))
                 # Build operation description, easy for LLM to understand
                 event_explanation = f"Click widget{element_id}: {nodes_description[element_id]['description']} at ({node.attribute['center']})"
-                return ClickEvent(node), event_explanation
-            else:
-                return None
+
         elif event_type == "input":
             element_id = event_json.get("element_id")
             text = event_json.get("text", "")
             if element_id is not None and 0 <= element_id <= len(nodes_description)-1:
                 node = nodes[element_id]
+                if node.attribute['focused'] == 'false':
+                    events_list.append(ClickEvent(node))
+                events_list.append(InputEvent(node, text))
                 event_explanation = f"Input text '{text}' into widget{element_id}: {nodes_description[element_id]['description']}"
-                return InputEvent(node, text), event_explanation
-            else:
-                return None
+
         elif event_type == "swipe":
             direction = event_json.get("direction")
             if direction in ["left", "right", "up", "down"]:
+                events_list.append(SwipeExtEvent(self.device, window, SwipeDirection(direction)))
                 event_explanation = f"Swipe {direction} to the screen"
-                return SwipeExtEvent(self.device, window, SwipeDirection(direction)), event_explanation
-            else:
-                return None
+
         elif event_type == "back":
             event_explanation = "Go back to the previous screen"
-            return KeyEvent(self.device, window, SystemKey.BACK), event_explanation
+            events_list.append(KeyEvent(self.device, window, SystemKey.BACK))
+
         elif event_type == "home":
             event_explanation = "Return to the home screen"
-            return KeyEvent(self.device, window, SystemKey.HOME), event_explanation
-        else:
-            return None, "Unknown event type"
+            events_list.append(KeyEvent(self.device, window, SystemKey.HOME))
+
+        return events_list, event_explanation
 
     def _verify_event(self, scenario, event_explanation, window_before, nodes_description_before, window_after,
                       nodes_description_after):

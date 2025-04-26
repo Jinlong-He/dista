@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import re
 from .proto import SystemKey
 
 class Event(ABC):
@@ -21,7 +22,10 @@ class ClickEvent(Event):
         self.node.click()
 
     def _json(self):
-        return {'type': 'Click'}
+        return {
+            'type': 'Click',
+            'node': self.node._json()
+        }
 
 class LongClickEvent(Event):
     def __init__(self, node):
@@ -31,7 +35,10 @@ class LongClickEvent(Event):
         self.node.long_click()
 
     def _json(self):
-        pass
+        return {
+            'type': 'LongClick',
+            'node': self.node._json()
+        }
 
 class InputEvent(Event):
     def __init__(self, node, text):
@@ -42,7 +49,11 @@ class InputEvent(Event):
         self.node.input(self.text)
 
     def _json(self):
-        pass
+        return {
+            'type': 'Input',
+            'text': self.text,
+            'node': self.node._json(),
+        }
 
 class SwipeExtEvent(Event):
     def __init__(self, device, window, direction):
@@ -54,7 +65,10 @@ class SwipeExtEvent(Event):
         self.device.swipe_ext(self.direction)
 
     def _json(self):
-        pass
+        return {
+            'type': 'SwipeExt',
+            'direction': self.direction,
+        }
 
 class KeyEvent(Event):
     def __init__(self, device, window, key):
@@ -66,4 +80,7 @@ class KeyEvent(Event):
         getattr(self.device, self.key)()
 
     def _json(self):
-        pass
+        return {
+            'type': 'Key',
+            'key': self.key,
+        }
