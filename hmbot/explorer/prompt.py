@@ -360,12 +360,10 @@ Return your decision strictly in the following JSON format, without any explanat
 {{"event_type": "back"}}
 {{"event_type": "home"}}
 """
-# 6. "finish": If the test scenario is finished
-# {{"event_type": "finish"}}
 
 
 verify_prompt = """
-## Test Scenario: 
+## Scenario: 
 {}
 
 ## Operations Performed
@@ -386,8 +384,8 @@ Please carefully analyze the screenshots and UI element changes before and after
    - Check for any unnecessary repetition of operations
 
 2. Goal Direction:
-   - Whether the operation performed is moving in the correct direction toward the test goal
-   - Whether there is any deviation from the test goal
+   - Whether the operation performed is moving in the correct direction toward the scenario goal
+   - Whether there is any deviation from the scenario goal
    - If there is deviation, what specific aspects it manifests in
 
 3. Interface Response:
@@ -396,20 +394,21 @@ Please carefully analyze the screenshots and UI element changes before and after
    - If there are no changes, what might be the possible reasons
 
 4. Goal Completion:
-   - Considering all executed operations, whether the current state has completed the result described in the test scenario
-   - Whether further operations are needed
-   - Specific manifestations of the completion level
+   - Considering all executed operations, whether the current state has FULLY completed ALL aspects of the goal described in the scenario
+   - Whether ANY further operations are needed to achieve complete success
+   - Specific concrete evidence that ALL success criteria have been met
+   - Identify any missing elements or incomplete aspects of the goal
 
 5. Termination Assessment:
-   - Based on the test goal and operation sequence, determine if testing should conclude
-   - If termination is appropriate, identify specific completion indicators
+   - Based on the scenario goal and operation sequence, determine if testing should conclude
+   - If termination is appropriate, identify MULTIPLE specific completion indicators that are ALL present
    - If continuation is needed, specify remaining steps required
 
 ## Output Requirements
 Please return the analysis results strictly in the following format:
 {{
     "validity": true/false, // Whether the operation is valid (successfully executed, correct UI response, matches functional intent, and leads to reasonable state change)
-    "goal_completion": true/false, // Whether the test scenario's objective has been fully achieved according to the current interface elements and operations performed
+    "goal_completion": true/false, // Whether the test scenario's objective has been FULLY achieved with CONCRETE EVIDENCE. Set to true ONLY if ALL success criteria are clearly met with no ambiguity. When in doubt, set to false.
     "analysis": "Detailed analysis of the operation's effectiveness, interface changes, and progress toward the test goal",
     "next_steps": "Suggested next steps based on the current state, including correction if the current path is incorrect"
 }}
@@ -417,7 +416,8 @@ Please return the analysis results strictly in the following format:
 Ensure your analysis focuses on functional intent rather than exact UI matching, considering the cross-platform adaptation context. 
 Be precise, objective, and base your evaluation on evidence from operation history, screenshots, and UI elements. 
 If the current operation deviates from the test goal, clearly indicate this and provide correction suggestions.
-When determining whether testing should terminate, consider the completion of the test goal, the sequence of operations performed, and the current interface state.
+
+IMPORTANT: When determining goal completion, be extremely conservative. Set "goal_completion" to true ONLY when you have clear, unambiguous evidence that ALL aspects of the test goal have been achieved. If there is ANY doubt or if ANY success criterion has not been definitively met, set "goal_completion" to false. The testing should continue until there is overwhelming evidence that the goal has been completely achieved.
 """
 
 

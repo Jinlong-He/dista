@@ -88,7 +88,11 @@ class U2(Automator):
             for child in node._compressed:
                 u2_nodes.extend(self.identify(node=child, type='android.widget.EditText', enabled="true", focused="true"))
         for u2_node in u2_nodes:
-            u2_node.set_text(text)
+            try:
+                u2_node.set_text(text)
+            except uiautomator2.UiObjectNotFoundError:
+                self.identify(node=node, type='android.widget.AutoCompleteTextView', enabled="true", focused="true").set_text(text)
+
 
     def dump_hierarchy(self, device):
         root = VHTParser._parse_adb_xml(self._driver.dump_hierarchy(compressed=True), device)._root
