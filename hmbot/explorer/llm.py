@@ -1,5 +1,6 @@
 import json
 import re
+import threading
 import time
 # import cv2
 from loguru import logger
@@ -17,6 +18,8 @@ class LLM(Explorer):
         super().__init__(device, app)
         self.client = OpenAI(api_key=api_key, base_url=url)
         self.model = model
+        self.terminated = False
+        self.lock = threading.Lock()
 
     def explore(self, **goal):
         """
@@ -28,7 +31,8 @@ class LLM(Explorer):
         edges_count = 0
         start = time.time()
 
-        first_window = self.device.dump_window(refresh=True)
+        with self.lock:
+            first_window = self.device.dump_window(refresh=True)
         scenario = self._understand(goal.get('key'), goal.get('value'), first_window)
         # All completed operations, excluding erroneous operations
         events_without_error = []
@@ -41,17 +45,22 @@ class LLM(Explorer):
         nodes_description_before = []
         steps = 0
 
+        t1 = threading.Thread(target=self._should_terminate_thread, args=(goal,))
+        t1.start()
+
         # Termination condition
-        terminated = self._should_terminate(window=first_window, goal=goal)
-        logger.debug("terminated: " + str(terminated))
-        if terminated:
+        # self.terminated = self._should_terminate(window=first_window, goal=goal)
+        # logger.debug("terminated: " + str(terminated))
+        if self.terminated:
             wtg.add_window(first_window)
             ability_count.add(first_window.ability)
 
-        while not terminated and steps < goal.get('max_steps'):
-            logger.debug("terminated: " + str(terminated))
+        while not self.terminated and steps < goal.get('max_steps'):
+            # logger.debug("terminated: " + str(self.terminated))
             # Get interface before operation execution
-            window_before = self.device.dump_window(refresh=True)
+
+            with self.lock:
+                window_before = self.device.dump_window(refresh=True)
 
             # Get interface element information (only needed first time, as verify gets post-operation interface info)
             if not nodes_description_before:
@@ -70,9 +79,10 @@ class LLM(Explorer):
 
             # Wait for UI update
             time.sleep(2)
-            window_after = self.device.dump_window(refresh=True)
+            with self.lock:
+                window_after = self.device.dump_window(refresh=True)
             nodes_description_after, nodes_after = self._nodes_detect(window_after)
-            terminated = self._should_terminate(window=window_after, goal=goal)
+            # self.terminated = self._should_terminate(window=window_after, goal=goal)
 
             if isinstance(events[0], KeyEvent) and events[0].key == SystemKey.BACK:
                 # Back operation doesn't need verification
@@ -82,7 +92,7 @@ class LLM(Explorer):
             # Verify operation result
             verify_result = self._verify_event(scenario, event_explanation, window_before, nodes_description_before,
                                                window_after, nodes_description_after)
-            terminated = self._should_terminate(window=window_after, goal=goal)
+            # self.terminated = self._should_terminate(window=window_after, goal=goal)
 
             # If current operation is valid, add it to the completed operations list
             if verify_result["validity"]:
@@ -93,8 +103,8 @@ class LLM(Explorer):
                 edges_count += 1
 
             # If verification result is complete, end exploration
-            if verify_result["goal_completion"] or (isinstance(events[0], KeyEvent) and events[0].key == SystemKey.HOME):
-                break
+            # if verify_result["goal_completion"] or (isinstance(events[0], KeyEvent) and events[0].key == SystemKey.HOME):
+            #     break
 
             nodes_description_before, nodes_before = nodes_description_after, nodes_after
 
@@ -110,6 +120,7 @@ class LLM(Explorer):
         logger.debug("ability_count: " + str(len(ability_count)))
         logger.debug("total_time: %.2f seconds" % (end - start))
         WTGParser.dump(wtg, 'wtg.json')
+        t1.join()
 
     def _should_terminate(self, window, goal):
         if goal.get('key') == ExploreGoal.TESTCASE:
@@ -122,7 +133,30 @@ class LLM(Explorer):
                     logger.debug("Audio is playing, terminating exploration.")
                     return True
         return False
-        
+
+    def _should_terminate_thread(self, goal):
+        """
+        Termination condition
+        """
+        while True:
+            with self.lock:
+                window = self.device.dump_window(refresh=True)
+            if goal.get('key') == ExploreGoal.TESTCASE:
+                return False
+            if goal.get('key') == ExploreGoal.HARDWARE:
+                if goal.get('value') == ResourceType.AUDIO:
+                    status = window.rsc.get(ResourceType.AUDIO)
+                    if status in [AudioStatus.START, AudioStatus.START_, AudioStatus.DUCK]:
+                        logger.debug("Audio is playing, terminating exploration.")
+                        self.terminated = True
+                        return True
+            time.sleep(1)
+
+    def test(self, **goal):
+        t1 = threading.Thread(target=self._should_terminate_thread, args=(goal,))
+        t1.start()
+        t1.join()
+
 
     def _understand(self, key, value, first_window=None):
         """
