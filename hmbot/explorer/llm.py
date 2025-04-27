@@ -24,6 +24,10 @@ class LLM(Explorer):
         """
         wtg = WTG()
 
+        ability_count = set()
+        edges_count = 0
+        start = time.time()
+
         first_window = self.device.dump_window(refresh=True)
         scenario = self._understand(goal.get('key'), goal.get('value'), first_window)
         # All completed operations, excluding erroneous operations
@@ -39,10 +43,13 @@ class LLM(Explorer):
 
         # Termination condition
         terminated = self._should_terminate(window=first_window, goal=goal)
-        logger.debug("terminated" + str(terminated))
+        logger.debug("terminated: " + str(terminated))
+        if terminated:
+            wtg.add_window(first_window)
+            ability_count.add(first_window.ability)
 
         while not terminated and steps < goal.get('max_steps'):
-            logger.debug("terminated" + str(terminated))
+            logger.debug("terminated: " + str(terminated))
             # Get interface before operation execution
             window_before = self.device.dump_window(refresh=True)
 
@@ -81,6 +88,9 @@ class LLM(Explorer):
             if verify_result["validity"]:
                 events_without_error.extend(events)
                 wtg.add_edge(window_before, window_after, events)
+                ability_count.add(window_before.ability)
+                ability_count.add(window_after.ability)
+                edges_count += 1
 
             # If verification result is complete, end exploration
             if verify_result["goal_completion"] or (isinstance(events[0], KeyEvent) and events[0].key == SystemKey.HOME):
@@ -93,8 +103,12 @@ class LLM(Explorer):
             feedback.append("Suggested Next Steps: " + verify_result["next_steps"])
             logger.debug(f"Feedback: {feedback}")
 
+        end = time.time()
         logger.debug("events_count: " + str(len(events_without_error)))
         logger.debug("windows_count: " + str(len(wtg.windows)))
+        logger.debug("edges_count: " + str(edges_count))
+        logger.debug("ability_count: " + str(len(ability_count)))
+        logger.debug("total_time: %.2f seconds" % (end - start))
         WTGParser.dump(wtg, 'wtg.json')
 
     def _should_terminate(self, window, goal):

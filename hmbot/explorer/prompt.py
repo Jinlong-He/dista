@@ -84,8 +84,9 @@ The test is considered successful as soon as the navigation process begins. This
 - The application displaying a route on the map
 - The interface changing to navigation mode
 - Navigation controls becoming visible
+- Navigation has actually started running with active guidance
 
-You do not need to wait for or confirm voice guidance - simply initiating the navigation process is sufficient to consider the test successful.
+You do not need to wait for or confirm voice guidance - simply ensuring that the navigation process has actually initiated and is actively running is sufficient to consider the test successful.
 """
 
 music_player_audio_prompt = """
@@ -152,7 +153,7 @@ Social media applications typically offer multiple features that may produce sou
 ## Testing Objective
 Find and activate any sound-producing feature in the social media application. You can try several approaches:
 
-1. Look for and play any video content - videos on many social platforms will play audio
+1. Look for and play any video content or live streams - if you see any videos or live streaming content, click on them directly as they are the most likely to produce audio
 2. Look for voice messages or voice memos features and play any available voice content
 3. Try initiating a voice or video call (if supported by the app and safe in a test environment)
 4. Look for and tap on any content or buttons with sound icons
