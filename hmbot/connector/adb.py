@@ -150,6 +150,8 @@ class ADB(Connector):
             if uid != uid_:
                 continue
             if status == 'started':
+                if not focus_dict:
+                    return AudioStatus.STOP
                 if (uid, pid) not in focus_dict:
                     if started_count > 1:
                         return AudioStatus.START_
