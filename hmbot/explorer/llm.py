@@ -122,22 +122,19 @@ class LLM(Explorer):
         WTGParser.dump(wtg, 'wtg.json')
         t1.join()
 
-    def _should_terminate(self, window, goal):
-        if goal.get('key') == ExploreGoal.TESTCASE:
-            return False
-        if goal.get('key') == ExploreGoal.HARDWARE:
-            if goal.get('value') == ResourceType.AUDIO:
-                # status = self.device.get_audio_status()
-                status = window.rsc.get(ResourceType.AUDIO)
-                if status in [AudioStatus.START, AudioStatus.START_, AudioStatus.DUCK]:
-                    logger.debug("Audio is playing, terminating exploration.")
-                    return True
-        return False
+    # def _should_terminate(self, window, goal):
+    #     if goal.get('key') == ExploreGoal.TESTCASE:
+    #         return False
+    #     if goal.get('key') == ExploreGoal.HARDWARE:
+    #         if goal.get('value') == ResourceType.AUDIO:
+    #             # status = self.device.get_audio_status()
+    #             status = window.rsc.get(ResourceType.AUDIO)
+    #             if status in [AudioStatus.START, AudioStatus.START_, AudioStatus.DUCK]:
+    #                 logger.debug("Audio is playing, terminating exploration.")
+    #                 return True
+    #     return False
 
     def _should_terminate_thread(self, goal):
-        """
-        Termination condition
-        """
         while True:
             with self.lock:
                 window = self.device.dump_window(refresh=True)
@@ -150,6 +147,8 @@ class LLM(Explorer):
                         logger.debug("Audio is playing, terminating exploration.")
                         self.terminated = True
                         return True
+                    # else:
+                    #     logger.debug("Audio is not playing")
             time.sleep(1)
 
     def test(self, **goal):
